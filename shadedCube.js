@@ -202,8 +202,12 @@ var playingField =  [[0, 0, 0, 1, 0, 0, 0],
                      [0, 0, 1, 2, 1, 0, 0],
                      [0, 0, 0, 1, 0, 0, 0]];
 
+var hero_x = 2;
+var hero_y = 3;
+
 // To scale the playing field
 var pfScale = 0.3;
+var heroScale = 0.2;
 var shouldAnimate = false;
 
 // Draws playing field to scale
@@ -217,21 +221,29 @@ function drawPlayingField(modelView) {
                 continue;
             }
             else {
-                drawCubeAt(rows/2-j, playingField[i][j]-2, cols/2-i, modelView);
+                drawCubeAt(rows/2-j, playingField[i][j]-2, cols/2-i, pfScale, modelView);
             }
         }
     }
 }
 
+// i, j is the hero's position within the playingField
+function drawHeroAt (i, j, modelView) {
+    var rows = playingField.length;
+    var cols = playingField[0].length;
+
+    drawCubeAt(rows/2-j, playingField[i][j]-1, cols/2-i, heroScale, modelView);
+}
+
 // Draws a single cube to scale
-function drawCubeAt (x, y, z, modelView) {
+function drawCubeAt (x, y, z, withScale, modelView) {
     // To get the relative center pos of cube
     x = pfScale * x - pfScale/2;
     y = pfScale * y - pfScale/2;
     z = pfScale * z - pfScale/2;
     
     modelView = mult(modelView, translate(x, y, z));
-    modelView = mult(modelView, scale4(pfScale, pfScale, pfScale));
+    modelView = mult(modelView, scale4(withScale, withScale, withScale));
 
     gl.uniformMatrix4fv( gl.getUniformLocation(program,
             "modelViewMatrix"), false, flatten(modelView) );
@@ -255,6 +267,7 @@ var render = function() {
         theta[yAxis] += 0.4;
     }
     drawPlayingField(modelView);
+    drawHeroAt(hero_x, hero_y, modelView);
 
     requestAnimFrame(render);
 }
