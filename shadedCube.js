@@ -252,7 +252,7 @@ var render = function() {
     modelView = mult(modelView, rotate(theta[zAxis], [0, 0, 1] ));
 
     if (shouldAnimate) {
-        theta[yAxis] += 0.4;
+        theta[yAxis] += 1.0;
     }
     drawPlayingField(modelView);
 
