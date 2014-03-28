@@ -22,19 +22,19 @@ var vertices = [
         vec4( 0.5, -0.5, -0.5, 1.0 )
     ];
 
-var lightPosition = vec4( -2.0, 10.0, 10.0, 0.0 );
+var lightPosition = vec4( -15.0, 2.0, 10.0, 0.0 );
 var lightAmbient = vec4(0.2, 0.2, 0.2, 1.0 );
 var lightDiffuse = vec4( 1.0, 1.0, 1.0, 1.0 );
-var lightSpecular = vec4( 0.1, 0.1, 0.1, 1.0 );
+var lightSpecular = vec4( 0.8, 0.1, 0.8, 1.0 );
 
 var materialAmbient = vec4( 1.0, 0.0, 1.0, 1.0 );
 var materialDiffuse = vec4( 1.0, 0.8, 0.0, 1.0);
-var materialSpecular = vec4( 1.0, 0.8, 0.0, 1.0 );
-var materialShininess = 100.0;
+var materialSpecular = vec4( 1.0, 0.0, 1.0, 1.0 );
+var materialShininess = 500.0;
 
 var claimedAmbient = vec4( 0.7, 0.3, 1.0, 1.0 );
-var claimedDiffuse = vec4( 0.25, 0.3, 0.0, 1.0);
-var claimedSpecular = vec4( 0.25, 0.3, 0.0, 1.0 );
+var claimedDiffuse = vec4( 0.5, 0.0, 0.1, 1.0);
+var claimedSpecular = vec4( 0.3, 0.0, 0.1, 1.0 );
 
 var ctm;
 var ambientColor, diffuseColor, specularColor;
@@ -282,6 +282,7 @@ var entities = {
             this.oldX = this.x;
             this.oldY = this.y;
             var i = this.isIn();
+            if (this.getZ() === 0 && (this.isIn() % 2 === 0)) return;
             switch (i) {
                 case 0:
                 case 5:
@@ -358,6 +359,7 @@ var entities = {
             this.oldY = this.y;
             if (this.getZ() === 0) return;
             var i = this.isIn();
+            if (this.getZ() === 0 && (this.isIn() % 2 === 0)) return;
             switch (i) {
                 case 0:
                 case 5:
@@ -410,10 +412,6 @@ var entities = {
             return false;
         },
         update : function () {
-            /*if (this.getZ() === -1) {
-                this.x = this.oldX;
-                this.y = this.oldY;
-            }*/
             easeToFancy(this, 5, 0.3);
         },
         render : function (modelView) {
@@ -627,7 +625,7 @@ var update = function () {
 var render = function() {
     update();
 
-    viewerPos = vec3(0.0, 0.0, -(1.5 + 0.3 * maxLevel));
+    viewerPos = vec3(0.0, 0.0, -(2.5 + 0.3 * (1.5*maxLevel - entities.hero.z_r)));
 
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -777,7 +775,7 @@ window.onload = function init() {
 
     thetaLoc = gl.getUniformLocation(program, "theta"); 
     
-    projection = perspective(70.0, 1024/768, 0.01, 1000.0);
+    projection = perspective(60.0, 800/800, 0.01, 1000.0);
     //projection = ortho(-1, 1, -1, 1, -100, 100);
     
     ambientProduct = mult(lightAmbient, materialAmbient);
