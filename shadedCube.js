@@ -22,10 +22,10 @@ var vertices = [
         vec4( 0.5, -0.5, -0.5, 1.0 )
     ];
 
-var lightPosition = vec4(-2.0, 2.0, 4.0, 0.0 );
+var lightPosition = vec4( -2.0, 10.0, 9.0, 0.0 );
 var lightAmbient = vec4(0.2, 0.2, 0.2, 1.0 );
 var lightDiffuse = vec4( 1.0, 1.0, 1.0, 1.0 );
-var lightSpecular = vec4( 1.0, 1.0, 1.0, 1.0 );
+var lightSpecular = vec4( 0.1, 0.1, 0.1, 1.0 );
 
 var materialAmbient = vec4( 1.0, 0.0, 1.0, 1.0 );
 var materialDiffuse = vec4( 1.0, 0.8, 0.0, 1.0);
@@ -42,7 +42,6 @@ var xAxis = 0;
 var yAxis = 1;
 var zAxis = 2;
 var axis = 0;
-var theta =[30.0, 0, 0];
 
 var thetaLoc;
 
@@ -127,8 +126,7 @@ function createTable(level)
     return field;
 }
 
-var playingField = createTable(6);
-playingField[0][0] = 1;
+var playingField = createTable(10);
 
 /** Explanation for 'regions' **/
 
@@ -296,7 +294,6 @@ var entities = {
             newIn = this.isIn()
             if (this.oldIn != newIn) {
                 this.oldIn = newIn
-                console.log(newIn);
                 return newIn;
             }
             return false;
@@ -347,7 +344,6 @@ var entities = {
 
         toPosOnLevelChange : function(level) {
             this.x = 30 + 60 * (level+1)/maxLevel;
-            console.log(this.x);
         },
         getPos : function () {
             return [x, y, z];
@@ -406,7 +402,6 @@ function easeTo(entity, speed)
     entity.z_r += (entity.z - entity.z_r) / speed;
 }
 
-
 window.onkeydown = function (e) {
     e.preventDefault();
     if (entities.hero.isEasing()) return;
@@ -419,6 +414,7 @@ window.onkeydown = function (e) {
         entities.hero.moveDownRight();
     else if (code === 40)   // Down
         entities.hero.moveDownLeft();
+
 }
 
 /** Mouse handling stuff **/
@@ -496,7 +492,7 @@ var update = function () {
 var render = function() {
     update();
 
-    viewerPos = vec3(0.0, 0.0, -2.5);
+    viewerPos = vec3(0.0, 0.0, -(1.5 + 0.3 * maxLevel));
 
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -604,10 +600,8 @@ function renderExplosions()
 		{
 			explosionArray.splice(i, 1);
 		}
-	}
-	
+	}	
 }
-
 
 window.onload = function init() {
     canvas = document.getElementById( "gl-canvas" );
