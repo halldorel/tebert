@@ -83,8 +83,6 @@ function colorCube()
 
 
 window.onload = function init() {
-
-
     canvas = document.getElementById( "gl-canvas" );
     
     gl = WebGLUtils.setupWebGL( canvas );
@@ -158,7 +156,6 @@ window.onload = function init() {
     entities.hero.moveUpLeft();
     console.log(entities.hero.isIn());
     };
-
 }
 
 
@@ -316,8 +313,22 @@ var entities = {
             }
             return false;
         },
+        oldIn : 1,
+        hasChangedRegion : function () {
+            if (this.oldIn != this.isIn())
+            {
+                this.oldIn = this.isIn()
+                return this.isIn();
+            }
+            return false;
+        },
         update : function () {
-            return
+            regionIfChanged = this.hasChangedRegion();
+            if (regionIfChanged !== false)
+            {
+                console.log(regionIfChanged);
+                entities.camera.toPos(regionIfChanged);
+            }
         },
         render : function (modelView) {
             drawCubeAt(rows/2-this.x, this.getZ(),
@@ -326,13 +337,16 @@ var entities = {
     },
     camera : {
         x: 30.0,
-        y: 0.0,
+        y: -45.0,
         z: 0.0,
         x_r: this.x,
         y_r: this.y,
         x_r: this.z,
         toPos : function(region) {
-
+            this.y = -90 + region * 45;
+        },
+        getPos : function () {
+            return [x, y, z];
         },
         update : function () {
             return
@@ -343,8 +357,6 @@ var entities = {
 
 window.onkeydown = function (e) {
     var code = e.keyCode ? e.keyCode : e.which;
-    console.log(code);
-
     if (code === 37)        // Left
         entities.hero.moveUpLeft();
     else if (code === 38)   // Up
@@ -353,7 +365,6 @@ window.onkeydown = function (e) {
         entities.hero.moveDownRight();
     else if (code === 40)   // Down
         entities.hero.moveDownLeft();
-
 }
 
 /** Mouse handling stuff **/
@@ -446,7 +457,7 @@ var render = function() {
     }
 
     drawPlayingField(modelView);
-	renderExplosions();
+	//renderExplosions();
 
     entities.hero.render(modelView);
 //    drawHeroAt(entities.hero.x, entities.hero.y, modelView);
