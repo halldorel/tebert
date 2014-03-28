@@ -82,84 +82,7 @@ function colorCube()
 }
 
 
-window.onload = function init() {
 
-
-    canvas = document.getElementById( "gl-canvas" );
-    
-    gl = WebGLUtils.setupWebGL( canvas );
-    if ( !gl ) { alert( "WebGL isn't available" ); }
-
-    gl.viewport( 0, 0, canvas.width, canvas.height );
-    gl.clearColor( 0.1, 0.1, 0.1, 1.0 );
-    
-    gl.enable(gl.DEPTH_TEST);
-	//pointsArray.push(vec3(0, 0, 0));
-	//normalsArray.push(vec3(0, 0, 0));
-
-    //
-    //  Load shaders and initialize attribute buffers
-    //
-    program = initShaders( gl, "vertex-shader", "fragment-shader" );
-    gl.useProgram( program );
-    
-    colorCube();
-
-    var nBuffer = gl.createBuffer();
-    gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer );
-    gl.bufferData( gl.ARRAY_BUFFER, flatten(normalsArray), gl.STATIC_DRAW );
-    
-    var vNormal = gl.getAttribLocation( program, "vNormal" );
-    gl.vertexAttribPointer( vNormal, 3, gl.FLOAT, false, 0, 0 );
-    gl.enableVertexAttribArray( vNormal );
-
-    var vBuffer = gl.createBuffer();
-    gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer );
-    gl.bufferData( gl.ARRAY_BUFFER, flatten(pointsArray), gl.STATIC_DRAW );
-    
-    var vPosition = gl.getAttribLocation(program, "vPosition");
-    gl.vertexAttribPointer(vPosition, 4, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(vPosition);
-
-    thetaLoc = gl.getUniformLocation(program, "theta"); 
-    
-    projection = perspective(70.0, 1024/768, 0.01, 1000.0);
-    
-    ambientProduct = mult(lightAmbient, materialAmbient);
-    diffuseProduct = mult(lightDiffuse, materialDiffuse);
-    specularProduct = mult(lightSpecular, materialSpecular);
-/*
-    document.getElementById("ButtonX").onclick = function(){axis = xAxis;};
-    document.getElementById("ButtonY").onclick = function(){axis = yAxis;};
-    document.getElementById("ButtonZ").onclick = function(){axis = zAxis;};
-    document.getElementById("ButtonT").onclick = function(){flag = !flag;};
-*/
-    gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"),
-       flatten(ambientProduct));
-    gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"),
-       flatten(diffuseProduct) );
-    gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), 
-       flatten(specularProduct) );	
-    gl.uniform4fv(gl.getUniformLocation(program, "lightPosition"), 
-       flatten(lightPosition) );
-       
-    gl.uniform1f(gl.getUniformLocation(program, 
-       "shininess"),materialShininess);
-    
-    gl.uniformMatrix4fv( gl.getUniformLocation(program, "projectionMatrix"),
-       false, flatten(projection));
-    
-    render();
-
-    document.getElementById("toggleAnimation").onclick = function () {
-        console.log("Let's dance!");
-        shouldAnimate = !shouldAnimate;
-
-    entities.hero.moveUpLeft();
-    console.log(entities.hero.isIn());
-    };
-
-}
 
 
     /****************
@@ -215,14 +138,15 @@ var entities = {
     hero : {
         x: 3,
         y: 1,
-        // Should be 'real' render pos with x and y as target pos
-        // which the real ones are easing to in every update
-        x_r: this.x,
-        y_r: this.y,
-        z_r: this.z,
         getZ : function () {
             return playingField[this.y][this.x]-1;
         },
+        // Should be 'real' render pos with x and y as target pos
+        // which the real ones are easing to in every update
+        x_r: 3,
+        y_r: 1,
+        z_r: 0,
+        speedFactor: 100,
         isIn: function () {
             // Hero is at top
             if ((this.x === this.y) && (this.x === Math.floor(rows/2)))
@@ -316,12 +240,22 @@ var entities = {
             }
             return false;
         },
+        isEasing : function() {
+            var delta = 0.1;
+            var dX = Math.abs(this.x - this.x_r);
+            var dY = Math.abs(this.y - this.y_r);
+            var dZ = Math.abs(this.getZ() - this.z_r);
+            if (dX > delta) return true;
+            if (dY > delta) return true;
+            if (dZ > delta) return true;
+            return false;
+        },
         update : function () {
-            return
+            easeToFancy(this, 5, 0.3);
         },
         render : function (modelView) {
-            drawCubeAt(rows/2-this.x, this.getZ(),
-                cols/2-this.y, heroScale, modelView);
+            drawCubeAt(rows/2-this.x_r, this.z_r,
+                cols/2-this.y_r, heroScale, modelView);
         }
     },
     camera : {
@@ -340,8 +274,39 @@ var entities = {
     }
 };
 
+// entity is an object that has attributes x, y, getZ() and
+// x_r, y_r, z_r. easteToFancy eases x_r, y_r to x, y.
+// When they are within delta of each other, easeToFancy
+// starts easying z_r to getZ().
+function easeToFancy(entity, speed, delta)
+{
+    if (entity.getZ() > entity.z_r)
+    {
+        entity.z_r += (entity.getZ() - entity.z_r) / speed;
+        if (entity.getZ() - entity.z_r < delta)
+        {
+            entity.x_r += (entity.x - entity.x_r) / speed;
+            entity.y_r += (entity.y - entity.y_r) / speed;
+        }
+    }
+    else
+    {
+        entity.x_r += (entity.x - entity.x_r) / speed;
+        entity.y_r += (entity.y - entity.y_r) / speed;
+        var deltaX = Math.abs(entity.x - entity.x_r);
+        var deltaY = Math.abs(entity.y - entity.y_r);
+        if (deltaX < delta && deltaY < delta)
+        {
+            entity.z_r += (entity.getZ() - entity.z_r) / speed;
+        }
+    }
+    
+}
+
 
 window.onkeydown = function (e) {
+    e.preventDefault();
+    if (entities.hero.isEasing()) return;
     var code = e.keyCode ? e.keyCode : e.which;
     console.log(code);
 
@@ -544,4 +509,84 @@ function renderExplosions()
 		}
 	}
 	
+}
+
+
+window.onload = function init() {
+
+
+    canvas = document.getElementById( "gl-canvas" );
+    
+    gl = WebGLUtils.setupWebGL( canvas );
+    if ( !gl ) { alert( "WebGL isn't available" ); }
+
+    gl.viewport( 0, 0, canvas.width, canvas.height );
+    gl.clearColor( 0.1, 0.1, 0.1, 1.0 );
+    
+    gl.enable(gl.DEPTH_TEST);
+    //pointsArray.push(vec3(0, 0, 0));
+    //normalsArray.push(vec3(0, 0, 0));
+
+    //
+    //  Load shaders and initialize attribute buffers
+    //
+    program = initShaders( gl, "vertex-shader", "fragment-shader" );
+    gl.useProgram( program );
+    
+    colorCube();
+
+    var nBuffer = gl.createBuffer();
+    gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer );
+    gl.bufferData( gl.ARRAY_BUFFER, flatten(normalsArray), gl.STATIC_DRAW );
+    
+    var vNormal = gl.getAttribLocation( program, "vNormal" );
+    gl.vertexAttribPointer( vNormal, 3, gl.FLOAT, false, 0, 0 );
+    gl.enableVertexAttribArray( vNormal );
+
+    var vBuffer = gl.createBuffer();
+    gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer );
+    gl.bufferData( gl.ARRAY_BUFFER, flatten(pointsArray), gl.STATIC_DRAW );
+    
+    var vPosition = gl.getAttribLocation(program, "vPosition");
+    gl.vertexAttribPointer(vPosition, 4, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(vPosition);
+
+    thetaLoc = gl.getUniformLocation(program, "theta"); 
+    
+    projection = perspective(70.0, 1024/768, 0.01, 1000.0);
+    
+    ambientProduct = mult(lightAmbient, materialAmbient);
+    diffuseProduct = mult(lightDiffuse, materialDiffuse);
+    specularProduct = mult(lightSpecular, materialSpecular);
+/*
+    document.getElementById("ButtonX").onclick = function(){axis = xAxis;};
+    document.getElementById("ButtonY").onclick = function(){axis = yAxis;};
+    document.getElementById("ButtonZ").onclick = function(){axis = zAxis;};
+    document.getElementById("ButtonT").onclick = function(){flag = !flag;};
+*/
+    gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"),
+       flatten(ambientProduct));
+    gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"),
+       flatten(diffuseProduct) );
+    gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), 
+       flatten(specularProduct) );  
+    gl.uniform4fv(gl.getUniformLocation(program, "lightPosition"), 
+       flatten(lightPosition) );
+       
+    gl.uniform1f(gl.getUniformLocation(program, 
+       "shininess"),materialShininess);
+    
+    gl.uniformMatrix4fv( gl.getUniformLocation(program, "projectionMatrix"),
+       false, flatten(projection));
+    
+    render();
+
+    document.getElementById("toggleAnimation").onclick = function () {
+        console.log("Let's dance!");
+        shouldAnimate = !shouldAnimate;
+
+    entities.hero.moveUpLeft();
+    console.log(entities.hero.isIn());
+    };
+
 }
