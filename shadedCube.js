@@ -32,6 +32,10 @@ var materialDiffuse = vec4( 1.0, 0.8, 0.0, 1.0);
 var materialSpecular = vec4( 1.0, 0.8, 0.0, 1.0 );
 var materialShininess = 100.0;
 
+var claimedAmbient = vec4( 0.6, 0.2, 0.9, 1.0 );
+var claimedDiffuse = vec4( 0.15, 0.2, 0.0, 1.0);
+var claimedSpecular = vec4( 0.15, 0.2, 0.0, 1.0 );
+
 var ctm;
 var ambientColor, diffuseColor, specularColor;
 var modelView, projection;
@@ -50,6 +54,7 @@ var flag = true;
 
 // ccw is true when moving between zones 1 and 8.
 var ccw = false;
+var level = 5;
 
 function quad(a, b, c, d) {
 
@@ -117,7 +122,27 @@ function createTable(level)
     return field;
 }
 
-var playingField = createTable(6);
+var playingField = createTable(level);
+
+function createClaims(field)
+{
+    var claims = [];
+    for(var i = 0; i < field.length; i++)
+    {
+        claims[i] = [];
+        for(var j = 0; j < field[i].length; j++)
+        {
+            if (field[i][j] > 0)
+            {
+                claims[i][j] = false;
+            }
+        }
+    }
+    return claims;
+}
+
+var claims = createClaims(playingField);
+claims[level-1][level-1] = true;
 
 /** Explanation for 'regions' **/
 
@@ -449,14 +474,15 @@ function drawPlayingField(modelView) {
                 continue;
             }
             else {
-                drawCubeAt(rows/2-j, playingField[i][j]-2, cols/2-i, pfScale, modelView);
+                drawCubeAt(rows/2-j, playingField[i][j]-2, cols/2-i, pfScale, modelView, claims[i][j]);
             }
         }
     }
 }
 
 // Draws a single cube to scale
-function drawCubeAt (x, y, z, withScale, modelView) {
+function drawCubeAt (x, y, z, withScale, modelView, claimed) {
+    claimed = claimed || false;
     // To get the relative center pos of cube
     x = pfScale * x - pfScale/2;
     y = pfScale * y - pfScale/2;
@@ -464,6 +490,31 @@ function drawCubeAt (x, y, z, withScale, modelView) {
     
     modelView = mult(modelView, translate(x, y, z));
     modelView = mult(modelView, scale4(withScale, withScale, withScale));
+
+    if (!claimed)
+    {
+        ambientProduct = mult(lightAmbient, materialAmbient);
+        diffuseProduct = mult(lightDiffuse, materialDiffuse);
+        specularProduct = mult(lightSpecular, materialSpecular);
+        gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"),
+            flatten(ambientProduct));
+        gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"),
+            flatten(diffuseProduct) );
+        gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), 
+            flatten(specularProduct) ); 
+    }
+    else
+    {
+        ambientProduct = mult(lightAmbient, claimedAmbient);
+        diffuseProduct = mult(lightDiffuse, claimedDiffuse);
+        specularProduct = mult(lightSpecular, claimedSpecular);
+        gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"),
+            flatten(ambientProduct));
+        gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"),
+            flatten(diffuseProduct) );
+        gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), 
+            flatten(specularProduct) ); 
+    }
 
     gl.uniformMatrix4fv( gl.getUniformLocation(program,
             "modelViewMatrix"), false, flatten(modelView) );
