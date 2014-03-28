@@ -81,10 +81,6 @@ function colorCube()
     quad( 5, 4, 0, 1 );
 }
 
-
-
-
-
     /****************
     **             **
     **  Game code  **
@@ -96,7 +92,7 @@ function colorCube()
 
 // Hard-coded playing field
 /*
-var playingField =  [[0, 0, 0, 0, 1, 0, 0, 0, 0],
+var playingField =  [[1, 0, 0, 0, 1, 0, 0, 0, 0],
                      [0, 0, 0, 1, 2, 1, 0, 0, 0],
                      [0, 0, 1, 2, 3, 2, 1, 0, 0],
                      [0, 1, 2, 3, 4, 3, 2, 1, 0],
@@ -155,7 +151,8 @@ and where to position the camera.
 var rows = playingField.length;
 var cols = playingField[0].length;
 
-var rows_half = Math.floor(rows/2);
+var rowsHalf = Math.floor(rows/2);
+var maxLevel = playingField[rowsHalf][rowsHalf];
 
 // To scale the playing field
 var pfScale = 0.3;
@@ -179,25 +176,25 @@ var entities = {
             // Hero is at top
             if ((this.x === this.y) && (this.x === Math.floor(rows/2)))
                 return 0;
-            if (this.x < rows_half)
+            if (this.x < rowsHalf)
             {
                 // Hero is in field no 1
-                if(this.y < rows_half)
+                if(this.y < rowsHalf)
                     return 1;
                 // Hero is in field no 2
-                else if(this.y > rows_half)
+                else if(this.y > rowsHalf)
                     return 3;
                 // Hero is between fields 1 and 4
                 else
                     return 8;
             }
-            else if(this.x > rows_half)
+            else if(this.x > rowsHalf)
             {
                 // Hero is in field no 3
-                if(this.y < rows_half)
+                if(this.y < rowsHalf)
                     return 5;
                 // Hero is in field no 4
-                else if(this.y > rows_half)
+                else if(this.y > rowsHalf)
                     return 7;
                 // Hero is between fields 2 and 3
                 else
@@ -206,10 +203,10 @@ var entities = {
             else
             {
                 // Special case 5: Hero is between fields 1 and 2
-                if(this.y < rows_half)
+                if(this.y < rowsHalf)
                     return 2;
                 // Special case 6: Hero is between fields 3 and 4
-                else if(this.y > rows_half)
+                else if(this.y > rowsHalf)
                     return 6;
             }
         }, 
@@ -268,6 +265,25 @@ var entities = {
             }
             return false;
         },
+        oldIn : 1,
+        hasChangedRegion : function () {
+            newIn = this.isIn()
+            if (this.oldIn != newIn) {
+                this.oldIn = newIn
+                return newIn;
+            }
+            return false;
+        },
+        oldZ : 4,
+        hasChangedLevel : function () {
+            // Level refers to height level of playingField
+            newZ = this.getZ()
+            if (this.oldZ != newZ) {
+                this.oldZ = newZ;
+                return newZ;
+            }
+            return false;
+        },
         isEasing : function() {
             var delta = 0.1;
             var dX = Math.abs(this.x - this.x_r);
@@ -288,16 +304,38 @@ var entities = {
     },
     camera : {
         x: 30.0,
-        y: 0.0,
+        y: -45.0,
         z: 0.0,
-        x_r: this.x,
-        y_r: this.y,
-        x_r: this.z,
-        toPos : function(region) {
+        x_r: 30.0,
+        y_r: 0.0,
+        z_r: 0.0,
+        toPosOnRegionChange : function(region) {
+            if (region === 0) {
+                // Special case, if on top
+                return
+            }
+            this.y = -90 + region * 45;
+        },
 
+        toPosOnLevelChange : function(level) {
+            this.x = 30 + 60 * (level+1)/maxLevel;
+            console.log(this.x);
+        },
+        getPos : function () {
+            return [x, y, z];
         },
         update : function () {
-            return
+            regionIfChanged = entities.hero.hasChangedRegion();
+            levelIfChanged = entities.hero.hasChangedLevel();
+            if (regionIfChanged !== false)
+            {
+                this.toPosOnRegionChange(regionIfChanged);
+            }
+            if (levelIfChanged !== false)
+            {
+                this.toPosOnLevelChange(levelIfChanged);
+            }
+            easeTo(this, 10);
         }
     }
 };
@@ -346,8 +384,6 @@ window.onkeydown = function (e) {
     e.preventDefault();
     if (entities.hero.isEasing()) return;
     var code = e.keyCode ? e.keyCode : e.which;
-    console.log(code);
-
     if (code === 37)        // Left
         entities.hero.moveUpLeft();
     else if (code === 38)   // Up
@@ -356,7 +392,6 @@ window.onkeydown = function (e) {
         entities.hero.moveDownRight();
     else if (code === 40)   // Down
         entities.hero.moveDownLeft();
-
 }
 
 /** Mouse handling stuff **/
@@ -434,27 +469,25 @@ var update = function () {
 var render = function() {
     update();
 
-    viewerPos = vec3(0.0, 0.0, -3.0 + 6*(entities.camera['x'])/360 );
+    viewerPos = vec3(0.0, 0.0, -2.5);
 
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     modelView = mat4();
     modelView = mult(modelView, translate(viewerPos));
-    modelView = mult(modelView, rotate(entities.camera['x'], [1, 0, 0] ));
-    modelView = mult(modelView, rotate(entities.camera['y'], [0, 1, 0] ));
-    modelView = mult(modelView, rotate(entities.camera['z'], [0, 0, 1] ));
+    modelView = mult(modelView, rotate(entities.camera['x_r'], [1, 0, 0] ));
+    modelView = mult(modelView, rotate(entities.camera['y_r'], [0, 1, 0] ));
+    modelView = mult(modelView, rotate(entities.camera['z_r'], [0, 0, 1] ));
 
     if (shouldAnimate) {
-        entities.camera['y'] += 0.4;
+        entities.camera['y'] += 3.0;
     }
 
     drawPlayingField(modelView);
-	renderExplosions();
+	//renderExplosions();
 
     entities.hero.render(modelView);
 //    drawHeroAt(entities.hero.x, entities.hero.y, modelView);
-
-
     requestAnimFrame(render);
 }
 
@@ -522,7 +555,6 @@ function renderExplosions()
 {
 	if (explosionArray.length == 0)
 	{
-		console.log("new");
 		explosionArray.push(new Explosion());
 	}
 	for (var i = 0; i < explosionArray.length;)
@@ -592,6 +624,7 @@ window.onload = function init() {
     thetaLoc = gl.getUniformLocation(program, "theta"); 
     
     projection = perspective(70.0, 1024/768, 0.01, 1000.0);
+    //projection = ortho(-1, 1, -1, 1, -100, 100);
     
     ambientProduct = mult(lightAmbient, materialAmbient);
     diffuseProduct = mult(lightDiffuse, materialDiffuse);
@@ -624,7 +657,6 @@ window.onload = function init() {
         shouldAnimate = !shouldAnimate;
 
     entities.hero.moveUpLeft();
-    console.log(entities.hero.isIn());
     };
 
 }
