@@ -166,36 +166,25 @@ var entities = {
             // Hero is at top
             if ((this.x === this.y) && (this.x === Math.floor(rows/2)))
                 return 0;
-            if (this.x < rowsHalf)
-            {
-                // Hero is in field no 1
+            if (this.x < rowsHalf) {
                 if(this.y < rowsHalf)
                     return 1;
-                // Hero is in field no 2
                 else if(this.y > rowsHalf)
-                    return 3;
-                // Hero is between fields 1 and 4
+                    return 7;
                 else
                     return 8;
             }
-            else if(this.x > rowsHalf)
-            {
-                // Hero is in field no 3
+            else if(this.x > rowsHalf) {
                 if(this.y < rowsHalf)
-                    return 5;
-                // Hero is in field no 4
+                    return 3;
                 else if(this.y > rowsHalf)
-                    return 7;
-                // Hero is between fields 2 and 3
+                    return 5;
                 else
                     return 4;
             }
-            else
-            {
-                // Special case 5: Hero is between fields 1 and 2
+            else {
                 if(this.y < rowsHalf)
                     return 2;
-                // Special case 6: Hero is between fields 3 and 4
                 else if(this.y > rowsHalf)
                     return 6;
             }
@@ -211,11 +200,11 @@ var entities = {
                 return true;
             }
             else if (i === 2) {
-                this.y++;
+                this.x++;
                 return true;
             }
             else if (i === 6) {
-                this.y--;
+                this.x--;
                 return true;
             }
             return false;
@@ -243,8 +232,23 @@ var entities = {
         // To be fixed ... 
         moveDownLeft : function () {
             if (this.getZ() !== 0) {
-                this.x--;
-                return true;
+                var i = this.isIn();
+                if (i === 7 || i === 1 || i === 2) {
+                    this.y--;
+                    return true;
+                }
+                else if (i === 3 || i === 5 || i === 6) {
+                    this.y--;
+                    return true;
+                }
+                else if (i === 8) {
+                    this.x++;
+                    return true;
+                }
+                else if (i === 4) {
+                    this.x--;
+                    return true;
+                }
             }
             return false;
         },
@@ -364,7 +368,6 @@ function easeToFancy(entity, speed, delta)
             entity.z_r += (entity.getZ() - entity.z_r) / speed;
         }
     }
-    
 }
 
 // entity has attributes x, y, z and x_r, y_r, z_r
