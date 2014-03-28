@@ -483,19 +483,18 @@ function easeToFancy(entity, speed, delta)
 // as an inverse speed factor.
 function easeTo(entity, speed)
 {
-    if (!ccw)
-    {
+    /*if (!ccw)
+    {*/
         entity.x_r += (entity.x - entity.x_r) / speed;
         entity.y_r += (entity.y - entity.y_r) / speed;
         entity.z_r += (entity.z - entity.z_r) / speed;
-    }
+    /*}
     else
     {
         entity.x_r += (entity.x - entity.x_r) / speed;
         entity.y_r += ((360 - entity.y) - entity.y_r) / speed;
         entity.z_r += (entity.z - entity.z_r) / speed;
-    }
-    
+    }*/
 }
 
 window.onkeydown = function (e) {
