@@ -95,6 +95,7 @@ function colorCube()
 /** Draw the playing field **/
 
 // Hard-coded playing field
+/*
 var playingField =  [[0, 0, 0, 0, 1, 0, 0, 0, 0],
                      [0, 0, 0, 1, 2, 1, 0, 0, 0],
                      [0, 0, 1, 2, 3, 2, 1, 0, 0],
@@ -104,21 +105,48 @@ var playingField =  [[0, 0, 0, 0, 1, 0, 0, 0, 0],
                      [0, 0, 1, 2, 3, 2, 1, 0, 0],
                      [0, 0, 0, 1, 2, 1, 0, 0, 0],
                      [0, 0, 0, 0, 1, 0, 0, 0, 0]];
+*/
+
+function createTable(level)
+{
+    var field = []
+    field[level-1] = []
+    field[level-1][level-1] = level;
+    for(var i = 1; i < level; i++)
+    {
+        field[level-1][level-1 - i] = level - i;
+        field[level-1][level-1 + i] = level - i;
+    }
+    for(var i = 1; i < level; i++)
+    {
+        field[level-1 - i] = [];
+        field[level-1 + i] = [];
+        for(var j = 0; j < (level*2)-1; j++)
+        {
+            var a = field[level-1][j] - i;
+            field[level-1 - i][j] = (a > 0) ? a : 0;
+            field[level-1 + i][j] = (a > 0) ? a : 0;
+        }
+    }
+    return field;
+}
+
+var playingField = createTable(6);
 
 /** Explanation for 'regions' **/
 
 /***
 The playing field is divided to 9 regions, as follows:
 
-/----------------\
-|      |   |     |
-|   1  | 2 |  3  |
-|----------------|
-|   8  | 0 |  4  |
-|----------------|
-|   7  | 6 |  5  |
-|      |   |     |
-\----------------/
+/---------------\
+|     |   |     |
+|  1  | 2 |  3  |
+|---------------|
+|  8  | 0 |  4  |
+|---------------|
+|  7  | 6 |  5  |
+|     |   |     |
+\---------------/
 
 This is to make it easier to know what the controls should do
 and where to position the camera.
