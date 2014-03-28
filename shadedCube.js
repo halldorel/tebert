@@ -22,10 +22,10 @@ var vertices = [
         vec4( 0.5, -0.5, -0.5, 1.0 )
     ];
 
-var lightPosition = vec4(-2.0, 2.0, 4.0, 0.0 );
+var lightPosition = vec4( -2.0, 10.0, 9.0, 0.0 );
 var lightAmbient = vec4(0.2, 0.2, 0.2, 1.0 );
 var lightDiffuse = vec4( 1.0, 1.0, 1.0, 1.0 );
-var lightSpecular = vec4( 1.0, 1.0, 1.0, 1.0 );
+var lightSpecular = vec4( 0.1, 0.1, 0.1, 1.0 );
 
 var materialAmbient = vec4( 1.0, 0.0, 1.0, 1.0 );
 var materialDiffuse = vec4( 1.0, 0.8, 0.0, 1.0);
@@ -46,7 +46,6 @@ var xAxis = 0;
 var yAxis = 1;
 var zAxis = 2;
 var axis = 0;
-var theta =[30.0, 0, 0];
 
 var thetaLoc;
 
@@ -206,6 +205,7 @@ function claimBlock(x, y, claim)
 }
 
 
+
 /** Explanation for 'regions' **/
 
 /***
@@ -238,15 +238,15 @@ var shouldAnimate = false;
 
 var entities = {
     hero : {
-        x: 3,
-        y: 1,
+        x: rowsHalf,
+        y: rowsHalf,
         getZ : function () {
             return playingField[this.y][this.x]-1;
         },
         // Should be 'real' render pos with x and y as target pos
         // which the real ones are easing to in every update
-        x_r: 3,
-        y_r: 1,
+        x_r: 30,
+        y_r: 10,
         z_r: 0,
         speedFactor: 100,
         isIn: function () {
@@ -277,76 +277,97 @@ var entities = {
             }
         }, 
         moveUpLeft : function () {
-            var i = this.isIn(); 
-            if (i === 1 || i === 3 || i === 8) {
-                this.x++;
-                return true;
+            var i = this.isIn();
+            switch (i) {
+                case 0:
+                case 5:
+                case 6:
+                    this.x--;
+                    break;
+                case 1:
+                case 2:
+                    this.x++;
+                    break;
+                case 3:
+                case 4:
+                    this.y++;
+                    break;
+                case 7:
+                case 8:
+                    this.y--;
+                    break;
+
             }
-            else if (i === 5 || i === 7 || i === 4) {
-                this.x--;
-                return true;
-            }
-            else if (i === 2) {
-                this.x++;
-                return true;
-            }
-            else if (i === 6) {
-                this.x--;
-                return true;
-            }
-            return false;
         },
         moveUpRight : function () {
-            var i = this.isIn(); 
-            if (i === 7 || i === 1 || i === 2) {
-                this.y++;
-                return true;
+            var i = this.isIn();
+            switch (i) {
+                case 0:
+                case 5:
+                case 6:
+                    this.y--;
+                    break;
+                case 1:
+                case 2:
+                    this.y++;
+                    break;
+                case 3:
+                case 4:
+                    this.x--;
+                    break;
+                case 7:
+                case 8:
+                    this.x++;
+                    break;
             }
-            else if (i === 3 || i === 5 || i === 6) {
-                this.y--;
-                return true;
-            }
-            else if (i === 8) {
-                this.x++;
-                return true;
-            }
-            else if (i === 4) {
-                this.x--;
-                return true;
-            }
-            return false;
         },
         // To be fixed ... 
         moveDownLeft : function () {
-            if (this.getZ() !== 0) {
-                var i = this.isIn();
-                if (i === 7 || i === 1 || i === 2) {
+            var i = this.isIn();
+            switch (i) {
+                case 0:
+                case 5:
+                case 6:
+                    this.y++;
+                    break;
+                case 1:
+                case 2:
                     this.y--;
-                    return true;
-                }
-                else if (i === 3 || i === 5 || i === 6) {
-                    this.y--;
-                    return true;
-                }
-                else if (i === 8) {
+                    break;
+                case 3:
+                case 4:
                     this.x++;
-                    return true;
-                }
-                else if (i === 4) {
+                    break;
+                case 7:
+                case 8:
                     this.x--;
-                    return true;
-                }
+                    break;
+
             }
-            return false;
         },
         moveDownRight : function () {
-            if (this.getZ() !== 0) {
-                this.y--;
-                return true;
+            var i = this.isIn();
+            switch (i) {
+                case 0:
+                case 5:
+                case 6:
+                    this.x++;
+                    break;
+                case 1:
+                case 2:
+                    this.x--;
+                    break;
+                case 3:
+                case 4:
+                    this.y--;
+                    break;
+                case 7:
+                case 8:
+                    this.y++;
+                    break;
             }
-            return false;
         },
-        oldIn : 1,
+        oldIn : rowsHalf,
         hasChangedRegion : function () {
             newIn = this.isIn()
             if (this.oldIn != newIn) {
@@ -401,6 +422,7 @@ var entities = {
         toPosOnRegionChange : function(region) {
             if (region === 0) {
                 // Special case, if on top
+                this.y = 180.0;
                 return
             }
             this.y = -90 + region * 45;
@@ -408,7 +430,6 @@ var entities = {
 
         toPosOnLevelChange : function(level) {
             this.x = 30 + 60 * (level+1)/maxLevel;
-            console.log(this.x);
         },
         getPos : function () {
             return [x, y, z];
@@ -476,7 +497,6 @@ function easeTo(entity, speed)
     }
     
 }
-
 
 window.onkeydown = function (e) {
     e.preventDefault();
@@ -583,7 +603,7 @@ var update = function () {
 var render = function() {
     update();
 
-    viewerPos = vec3(0.0, 0.0, -2.5);
+    viewerPos = vec3(0.0, 0.0, -(1.5 + 0.3 * maxLevel));
 
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -691,14 +711,10 @@ function renderExplosions()
 		{
 			explosionArray.splice(i, 1);
 		}
-	}
-	
+	}	
 }
 
-
 window.onload = function init() {
-
-
     canvas = document.getElementById( "gl-canvas" );
     
     gl = WebGLUtils.setupWebGL( canvas );
