@@ -441,13 +441,13 @@ function Explosion(pos, intensity, amplitude)
 {
 	pos = pos || vec3(0.0, 0.5, 0.0);
 	intensity = intensity || 0.05;
-	amplitude = amplitude || 100;
+	amplitude = amplitude || 50;
 	var decrement = 0.001;
 	function Particle(pos, i)
 	{
 		var half = (i/2);
 		this.pos = pos;
-		this.life = Math.random();
+		this.life = Math.random() - 0.5;
 		this.vel = vec3(Math.random()*i - half, Math.random()*i - half, Math.random()*i - half);
 		this.update = function() {
 			if (this.life >= 0.0)
