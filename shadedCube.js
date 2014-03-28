@@ -303,6 +303,16 @@ function easeToFancy(entity, speed, delta)
     
 }
 
+// entity has attributes x, y, z and x_r, y_r, z_r
+// easeTo eases x_r, y_r z_r to x, y, z with speed
+// as an inverse speed factor.
+function easeTo(entity, speed)
+{
+    entity.x_r += (entity.x - entity.x_r) / speed;
+    entity.y_r += (entity.y - entity.y_r) / speed;
+    entity.z_r += (entity.z - entity.z_r) / speed;
+}
+
 
 window.onkeydown = function (e) {
     e.preventDefault();
