@@ -8,6 +8,9 @@ var numVertices  = 36;
 var pointsArray = [];
 var normalsArray = [];
 
+// Contains all objects of type Explosion
+var explosionArray = [];
+
 var vertices = [
         vec4( -0.5, -0.5,  0.5, 1.0 ),
         vec4( -0.5,  0.5,  0.5, 1.0 ),
@@ -91,6 +94,8 @@ window.onload = function init() {
     gl.clearColor( 0.1, 0.1, 0.1, 1.0 );
     
     gl.enable(gl.DEPTH_TEST);
+	//pointsArray.push(vec3(0, 0, 0));
+	//normalsArray.push(vec3(0, 0, 0));
 
     //
     //  Load shaders and initialize attribute buffers
@@ -268,6 +273,98 @@ var render = function() {
     }
     drawPlayingField(modelView);
     drawHeroAt(hero_x, hero_y, modelView);
+	renderExplosions();
 
     requestAnimFrame(render);
+}
+
+
+/**************************
+ **                      **
+ **  Bells and whistles  **
+ **                      **
+ **************************/
+
+function Explosion(pos, intensity, amplitude)
+{
+	pos = pos || vec3(0.0, 0.5, 0.0);
+	intensity = intensity || 0.05;
+	amplitude = amplitude || 100;
+	var decrement = 0.001;
+	function Particle(pos, i)
+	{
+		var half = (i/2);
+		this.pos = pos;
+		this.life = Math.random();
+		this.vel = vec3(Math.random()*i - half, Math.random()*i - half, Math.random()*i - half);
+		this.update = function() {
+			if (this.life >= 0.0)
+			{
+				this.pos = add(this.pos, this.vel);
+				this.vel[1] -= decrement;
+				this.life -= decrement;
+			}
+		};
+		this.render = function() {
+			if (this.life >= 0.0)
+			{
+				var mv = mult(modelView, translate(this.pos[0], this.pos[1], this.pos[2]));
+				mv = mult(mv, scale4(0.02, 0.02, 0.02));
+				gl.uniformMatrix4fv( gl.getUniformLocation(program,
+				        "modelViewMatrix"), false, flatten(mv) );
+				gl.drawArrays( gl.TRIANGLES, 0, numVertices);
+			}   
+		}
+	}
+
+	this.particles = [];
+	for (var i = 0; i < amplitude; i++)
+	{
+		this.particles[i] = new Particle(pos, intensity);
+	}
+	this.update = function() {
+		for (var i = 0; i < this.particles.length; i++)
+		{
+			if (this.particles[i] != null)
+			{
+				this.particles[i].render();
+				this.particles[i].update();
+				if (this.particles[i].life <= 0.0)
+				{
+					this.particles[i] = null;
+				}
+			}
+		}
+	}
+}
+
+function renderExplosions()
+{
+	if (explosionArray.length == 0)
+	{
+		console.log("new");
+		explosionArray.push(new Explosion());
+	}
+	for (var i = 0; i < explosionArray.length;)
+	{
+		explosionArray[i].update();
+		var active = false;
+		for (var j = 0; j < explosionArray[i].particles.length; j++)
+		{
+			if (explosionArray[i].particles[j] != null)
+			{
+				active = true;
+				break;
+			}
+		}
+		if (active)
+		{
+			i++;
+		}
+		else
+		{
+			explosionArray.splice(i, 1);
+		}
+	}
+	
 }
