@@ -146,19 +146,190 @@ window.onload = function init() {
     
     render();
 
-
     document.getElementById("toggleAnimation").onclick = function () {
         console.log("Let's dance!");
         shouldAnimate = !shouldAnimate;
+
+    entities.hero.moveUpLeft();
+    console.log(entities.hero.isIn());
     };
 
 }
+
 
     /****************
     **             **
     **  Game code  **
     **             **
     *****************/
+
+
+/** Draw the playing field **/
+
+// Hard-coded playing field
+var playingField =  [[0, 0, 0, 0, 1, 0, 0, 0, 0],
+                     [0, 0, 0, 1, 2, 1, 0, 0, 0],
+                     [0, 0, 1, 2, 3, 2, 1, 0, 0],
+                     [0, 1, 2, 3, 4, 3, 2, 1, 0],
+                     [1, 2, 3, 4, 5, 4, 3, 2, 1],
+                     [0, 1, 2, 3, 4, 3, 2, 1, 0],
+                     [0, 0, 1, 2, 3, 2, 1, 0, 0],
+                     [0, 0, 0, 1, 2, 1, 0, 0, 0],
+                     [0, 0, 0, 0, 1, 0, 0, 0, 0]];
+
+var rows = playingField.length;
+var cols = playingField[0].length;
+
+var rows_half = Math.floor(rows/2)
+
+// To scale the playing field
+var pfScale = 0.3;
+var heroScale = 0.2;
+var shouldAnimate = false;
+
+var entities = {
+    hero : {
+        x: 3,
+        y: 1,
+        // Should be 'real' render pos with x and y as target pos
+        // which the real ones are easing to in every update
+        x_dest: this.x,
+        y_dest: this.y,
+        z_dest: this.z,
+        getZ : function () {
+            return playingField[this.y][this.x]-1;
+        },
+        isIn: function () {
+            // Hero is at top
+            if ((this.x === this.y) && (this.x === Math.floor(rows/2)))
+                return 0;
+            if (this.x < rows_half)
+            {
+                // Hero is in field no 1
+                if(this.y < rows_half)
+                    return 1;
+                // Hero is in field no 2
+                else if(this.y > rows_half)
+                    return 2;
+                // Hero is between fields 1 and 4
+                else
+                    return 5;
+            }
+            else if(this.x > rows_half)
+            {
+                // Hero is in field no 3
+                if(this.y < rows_half)
+                    return 3;
+                // Hero is in field no 4
+                else if(this.y > rows_half)
+                    return 4;
+                // Hero is between fields 2 and 3
+                else
+                    return 7;
+            }
+            else
+            {
+                // Special case 5: Hero is between fields 1 and 2
+                if(this.y < rows_half)
+                    return 6;
+                // Special case 6: Hero is between fields 3 and 4
+                else if(this.y > rows_half)
+                    return 8;
+            }
+        }, 
+        moveUpLeft : function () {
+            var i = this.isIn(); 
+            if (i === 1 || i === 2 || i === 5)
+            {
+                this.x++;
+                return true;
+            }
+            else if (i === 3 || i === 4 || i === 7)
+            {
+                this.x--;
+                return true;
+            }
+            else if (i === 6)
+            {
+                this.y++;
+                return true;
+            }
+            else if (i === 8)
+            {
+                this.y--;
+                return true;
+            }
+            return false;
+        },
+        moveUpRight : function () {
+            var i = this.isIn(); 
+            if (i === 4 || i === 1 || i === 6)
+            {
+                this.y++;
+                return true;
+            }
+            else if (i === 2 || i === 3 || i === 8)
+            {
+                this.y--;
+                return true;
+            }
+            else if (i === 5)
+            {
+                this.x++;
+                return true;
+            }
+            else if (i === 7)
+            {
+                this.x--;
+                return true;
+            }
+            return false;
+        },
+        // To be fixed ... 
+        moveDownLeft : function () {
+            if (this.getZ() !== 0) {
+                this.x--;
+                return true;
+            }
+            return false;
+        },
+        moveDownRight : function () {
+            if (this.getZ() !== 0) {
+                this.y--;
+                return true;
+            }
+            return false;
+        },
+        render : function (modelView) {
+            drawCubeAt(rows/2-this.x, this.getZ(),
+                cols/2-this.y, heroScale, modelView);
+        }
+    },
+    camera : {
+        x: 30.0,
+        y: 0.0,
+        z: 0.0,
+        x_dest: this.x,
+        y_dest: this.y,
+        z_dest: this.z
+    }
+};
+
+
+window.onkeydown = function (e) {
+    var code = e.keyCode ? e.keyCode : e.which;
+    console.log(code);
+
+    if (code === 37)        // Left
+        entities.hero.moveUpLeft();
+    else if (code === 38)   // Up
+        entities.hero.moveUpRight();
+    else if (code === 39)   // Right
+        entities.hero.moveDownRight();
+    else if (code === 40)   // Down
+        entities.hero.moveDownLeft();
+
+}
 
 /** Mouse handling stuff **/
 var mouseDelta = { x : 0, y : 0 };
@@ -175,8 +346,8 @@ window.onmousedown = negate;
 window.onmousemove = function (e) {
     if (button)
     {
-        theta[yAxis] += 1.0 * mouseDelta.x;
-        theta[xAxis] += 1.0 * mouseDelta.y;
+        entities.camera['y'] += 1.0 * mouseDelta.x;
+        entities.camera['x'] += 1.0 * mouseDelta.y;
 
         mouseDelta.x = e.x - lastMouse.x;
         mouseDelta.y = e.y - lastMouse.y;
@@ -189,26 +360,9 @@ window.onmousemove = function (e) {
 
     lastMouse.x = e.x;
     lastMouse.y = e.y;
+
 };
 
-/** Draw the playing field **/
-
-// Hard-coded playing field
-var playingField =  [[0, 0, 0, 1, 0, 0, 0],
-                     [0, 0, 1, 2, 1, 0, 0],
-                     [0, 1, 2, 3, 2, 1, 0],
-                     [1, 2, 3, 4, 3, 2, 1],
-                     [0, 1, 2, 3, 2, 1, 0],
-                     [0, 0, 1, 2, 1, 0, 0],
-                     [0, 0, 0, 1, 0, 0, 0]];
-
-var hero_x = 2;
-var hero_y = 3;
-
-// To scale the playing field
-var pfScale = 0.3;
-var heroScale = 0.2;
-var shouldAnimate = false;
 
 // Draws playing field to scale
 function drawPlayingField(modelView) {
@@ -227,14 +381,6 @@ function drawPlayingField(modelView) {
     }
 }
 
-// i, j is the hero's position within the playingField
-function drawHeroAt (i, j, modelView) {
-    var rows = playingField.length;
-    var cols = playingField[0].length;
-
-    drawCubeAt(rows/2-j, playingField[i][j]-1, cols/2-i, heroScale, modelView);
-}
-
 // Draws a single cube to scale
 function drawCubeAt (x, y, z, withScale, modelView) {
     // To get the relative center pos of cube
@@ -250,24 +396,33 @@ function drawCubeAt (x, y, z, withScale, modelView) {
     gl.drawArrays( gl.TRIANGLES, 0, numVertices );
 }
 
+var update = function () {
+    for (var entity in entities) {
+        entities[entity]
+    }
+};
+
 // Main render function
 var render = function() {
-    
-    viewerPos = vec3(0.0, 0.0, -3.0 + 6*(theta[xAxis])/360 );
+    update();
+
+    viewerPos = vec3(0.0, 0.0, -3.0 + 6*(entities.camera['x'])/360 );
 
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     modelView = mat4();
     modelView = mult(modelView, translate(viewerPos));
-    modelView = mult(modelView, rotate(theta[xAxis], [1, 0, 0] ));
-    modelView = mult(modelView, rotate(theta[yAxis], [0, 1, 0] ));
-    modelView = mult(modelView, rotate(theta[zAxis], [0, 0, 1] ));
+    modelView = mult(modelView, rotate(entities.camera['x'], [1, 0, 0] ));
+    modelView = mult(modelView, rotate(entities.camera['y'], [0, 1, 0] ));
+    modelView = mult(modelView, rotate(entities.camera['z'], [0, 0, 1] ));
 
     if (shouldAnimate) {
-        theta[yAxis] += 0.4;
+        entities.camera['y'] += 0.4;
     }
+
     drawPlayingField(modelView);
-    drawHeroAt(hero_x, hero_y, modelView);
+    entities.hero.render(modelView);
+//    drawHeroAt(entities.hero.x, entities.hero.y, modelView);
 
     requestAnimFrame(render);
 }
