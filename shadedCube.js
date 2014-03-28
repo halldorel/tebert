@@ -123,7 +123,8 @@ and where to position the camera.
 var rows = playingField.length;
 var cols = playingField[0].length;
 
-var rows_half = Math.floor(rows/2);
+var rowsHalf = Math.floor(rows/2);
+var maxLevel = playingField[rowsHalf][rowsHalf];
 
 // To scale the playing field
 var pfScale = 0.3;
@@ -147,25 +148,25 @@ var entities = {
             // Hero is at top
             if ((this.x === this.y) && (this.x === Math.floor(rows/2)))
                 return 0;
-            if (this.x < rows_half)
+            if (this.x < rowsHalf)
             {
                 // Hero is in field no 1
-                if(this.y < rows_half)
+                if(this.y < rowsHalf)
                     return 1;
                 // Hero is in field no 2
-                else if(this.y > rows_half)
+                else if(this.y > rowsHalf)
                     return 3;
                 // Hero is between fields 1 and 4
                 else
                     return 8;
             }
-            else if(this.x > rows_half)
+            else if(this.x > rowsHalf)
             {
                 // Hero is in field no 3
-                if(this.y < rows_half)
+                if(this.y < rowsHalf)
                     return 5;
                 // Hero is in field no 4
-                else if(this.y > rows_half)
+                else if(this.y > rowsHalf)
                     return 7;
                 // Hero is between fields 2 and 3
                 else
@@ -174,10 +175,10 @@ var entities = {
             else
             {
                 // Special case 5: Hero is between fields 1 and 2
-                if(this.y < rows_half)
+                if(this.y < rowsHalf)
                     return 2;
                 // Special case 6: Hero is between fields 3 and 4
-                else if(this.y > rows_half)
+                else if(this.y > rowsHalf)
                     return 6;
             }
         }, 
@@ -238,10 +239,20 @@ var entities = {
         },
         oldIn : 1,
         hasChangedRegion : function () {
-            if (this.oldIn != this.isIn())
-            {
-                this.oldIn = this.isIn()
-                return this.isIn();
+            newIn = this.isIn()
+            if (this.oldIn != newIn) {
+                this.oldIn = newIn
+                return newIn;
+            }
+            return false;
+        },
+        oldZ : 4,
+        hasChangedLevel : function () {
+            // Level refers to height level of playingField
+            newZ = this.getZ()
+            if (this.oldZ != newZ) {
+                this.oldZ = newZ;
+                return newZ;
             }
             return false;
         },
@@ -270,20 +281,31 @@ var entities = {
         x_r: 30.0,
         y_r: 0.0,
         z_r: 0.0,
-        toPos : function(region) {
-            this.
-            this.x = 30  
+        toPosOnRegionChange : function(region) {
+            if (region === 0) {
+                // Special case, if on top
+                return
+            }
             this.y = -90 + region * 45;
+        },
+
+        toPosOnLevelChange : function(level) {
+            this.x = 30 + 60 * (level+1)/maxLevel;
+            console.log(this.x);
         },
         getPos : function () {
             return [x, y, z];
         },
         update : function () {
             regionIfChanged = entities.hero.hasChangedRegion();
+            levelIfChanged = entities.hero.hasChangedLevel();
             if (regionIfChanged !== false)
             {
-                console.log(regionIfChanged);
-                this.toPos(regionIfChanged);
+                this.toPosOnRegionChange(regionIfChanged);
+            }
+            if (levelIfChanged !== false)
+            {
+                this.toPosOnLevelChange(levelIfChanged);
             }
             easeTo(this, 10);
         }
@@ -419,7 +441,7 @@ var update = function () {
 var render = function() {
     update();
 
-    viewerPos = vec3(0.0, 0.0, -3.0 + 6*(entities.camera['x'])/360 );
+    viewerPos = vec3(0.0, 0.0, -2.5);
 
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -430,7 +452,7 @@ var render = function() {
     modelView = mult(modelView, rotate(entities.camera['z_r'], [0, 0, 1] ));
 
     if (shouldAnimate) {
-        entities.camera['y'] += 0.4;
+        entities.camera['y'] += 3.0;
     }
 
     drawPlayingField(modelView);
@@ -505,7 +527,6 @@ function renderExplosions()
 {
 	if (explosionArray.length == 0)
 	{
-		console.log("new");
 		explosionArray.push(new Explosion());
 	}
 	for (var i = 0; i < explosionArray.length;)
@@ -575,6 +596,7 @@ window.onload = function init() {
     thetaLoc = gl.getUniformLocation(program, "theta"); 
     
     projection = perspective(70.0, 1024/768, 0.01, 1000.0);
+    //projection = ortho(-1, 1, -1, 1, -100, 100);
     
     ambientProduct = mult(lightAmbient, materialAmbient);
     diffuseProduct = mult(lightDiffuse, materialDiffuse);
@@ -607,7 +629,6 @@ window.onload = function init() {
         shouldAnimate = !shouldAnimate;
 
     entities.hero.moveUpLeft();
-    console.log(entities.hero.isIn());
     };
 
 }
