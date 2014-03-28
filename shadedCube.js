@@ -172,7 +172,7 @@ window.onload = function init() {
 /** Draw the playing field **/
 
 // Hard-coded playing field
-var playingField =  [[0, 0, 0, 0, 1, 0, 0, 0, 0],
+var playingField =  [[1, 0, 0, 0, 1, 0, 0, 0, 0],
                      [0, 0, 0, 1, 2, 1, 0, 0, 0],
                      [0, 0, 1, 2, 3, 2, 1, 0, 0],
                      [0, 1, 2, 3, 4, 3, 2, 1, 0],
@@ -450,8 +450,6 @@ var render = function() {
 
     entities.hero.render(modelView);
 //    drawHeroAt(entities.hero.x, entities.hero.y, modelView);
-
-
     requestAnimFrame(render);
 }
 
