@@ -182,10 +182,29 @@ var playingField =  [[0, 0, 0, 0, 1, 0, 0, 0, 0],
                      [0, 0, 0, 1, 2, 1, 0, 0, 0],
                      [0, 0, 0, 0, 1, 0, 0, 0, 0]];
 
+/** Explanation for 'regions' **/
+
+/***
+The playing field is divided to 9 regions, as follows:
+
+/----------------\
+|      |   |     |
+|   1  | 2 |  3  |
+|----------------|
+|   8  | 0 |  4  |
+|----------------|
+|   7  | 6 |  5  |
+|      |   |     |
+\----------------/
+
+This is to make it easier to know what the controls should do
+and where to position the camera.
+***/
+
 var rows = playingField.length;
 var cols = playingField[0].length;
 
-var rows_half = Math.floor(rows/2)
+var rows_half = Math.floor(rows/2);
 
 // To scale the playing field
 var pfScale = 0.3;
@@ -198,9 +217,9 @@ var entities = {
         y: 1,
         // Should be 'real' render pos with x and y as target pos
         // which the real ones are easing to in every update
-        x_dest: this.x,
-        y_dest: this.y,
-        z_dest: this.z,
+        x_r: this.x,
+        y_r: this.y,
+        z_r: this.z,
         getZ : function () {
             return playingField[this.y][this.x]-1;
         },
@@ -215,52 +234,48 @@ var entities = {
                     return 1;
                 // Hero is in field no 2
                 else if(this.y > rows_half)
-                    return 2;
+                    return 3;
                 // Hero is between fields 1 and 4
                 else
-                    return 5;
+                    return 8;
             }
             else if(this.x > rows_half)
             {
                 // Hero is in field no 3
                 if(this.y < rows_half)
-                    return 3;
+                    return 5;
                 // Hero is in field no 4
                 else if(this.y > rows_half)
-                    return 4;
+                    return 7;
                 // Hero is between fields 2 and 3
                 else
-                    return 7;
+                    return 4;
             }
             else
             {
                 // Special case 5: Hero is between fields 1 and 2
                 if(this.y < rows_half)
-                    return 6;
+                    return 2;
                 // Special case 6: Hero is between fields 3 and 4
                 else if(this.y > rows_half)
-                    return 8;
+                    return 6;
             }
         }, 
         moveUpLeft : function () {
             var i = this.isIn(); 
-            if (i === 1 || i === 2 || i === 5)
-            {
+            if (i === 1 || i === 3 || i === 8) {
                 this.x++;
                 return true;
             }
-            else if (i === 3 || i === 4 || i === 7)
-            {
+            else if (i === 5 || i === 7 || i === 4) {
                 this.x--;
                 return true;
             }
-            else if (i === 6)
-            {
+            else if (i === 2) {
                 this.y++;
                 return true;
             }
-            else if (i === 8)
-            {
+            else if (i === 6) {
                 this.y--;
                 return true;
             }
@@ -268,23 +283,19 @@ var entities = {
         },
         moveUpRight : function () {
             var i = this.isIn(); 
-            if (i === 4 || i === 1 || i === 6)
-            {
+            if (i === 7 || i === 1 || i === 2) {
                 this.y++;
                 return true;
             }
-            else if (i === 2 || i === 3 || i === 8)
-            {
+            else if (i === 3 || i === 5 || i === 6) {
                 this.y--;
                 return true;
             }
-            else if (i === 5)
-            {
+            else if (i === 8) {
                 this.x++;
                 return true;
             }
-            else if (i === 7)
-            {
+            else if (i === 4) {
                 this.x--;
                 return true;
             }
@@ -305,6 +316,9 @@ var entities = {
             }
             return false;
         },
+        update : function () {
+            return
+        },
         render : function (modelView) {
             drawCubeAt(rows/2-this.x, this.getZ(),
                 cols/2-this.y, heroScale, modelView);
@@ -314,9 +328,15 @@ var entities = {
         x: 30.0,
         y: 0.0,
         z: 0.0,
-        x_dest: this.x,
-        y_dest: this.y,
-        z_dest: this.z
+        x_r: this.x,
+        y_r: this.y,
+        x_r: this.z,
+        toPos : function(region) {
+
+        },
+        update : function () {
+            return
+        }
     }
 };
 
@@ -403,7 +423,7 @@ function drawCubeAt (x, y, z, withScale, modelView) {
 
 var update = function () {
     for (var entity in entities) {
-        entities[entity]
+        entities[entity].update();
     }
 };
 
