@@ -48,6 +48,9 @@ var thetaLoc;
 
 var flag = true;
 
+// ccw is true when moving between zones 1 and 8.
+var ccw = false;
+
 function quad(a, b, c, d) {
 
      var t1 = subtract(vertices[b], vertices[a]);
@@ -89,19 +92,6 @@ function colorCube()
 
 
 /** Draw the playing field **/
-
-// Hard-coded playing field
-/*
-var playingField =  [[1, 0, 0, 0, 1, 0, 0, 0, 0],
-                     [0, 0, 0, 1, 2, 1, 0, 0, 0],
-                     [0, 0, 1, 2, 3, 2, 1, 0, 0],
-                     [0, 1, 2, 3, 4, 3, 2, 1, 0],
-                     [1, 2, 3, 4, 5, 4, 3, 2, 1],
-                     [0, 1, 2, 3, 4, 3, 2, 1, 0],
-                     [0, 0, 1, 2, 3, 2, 1, 0, 0],
-                     [0, 0, 0, 1, 2, 1, 0, 0, 0],
-                     [0, 0, 0, 0, 1, 0, 0, 0, 0]];
-*/
 
 function createTable(level)
 {
@@ -269,6 +259,14 @@ var entities = {
         hasChangedRegion : function () {
             newIn = this.isIn()
             if (this.oldIn != newIn) {
+                if (Math.abs(this.oldIn - newIn) === 7)
+                {
+                    ccw = true;
+                }
+                else
+                {
+                    ccw = false;
+                }
                 this.oldIn = newIn
                 return newIn;
             }
@@ -374,9 +372,19 @@ function easeToFancy(entity, speed, delta)
 // as an inverse speed factor.
 function easeTo(entity, speed)
 {
-    entity.x_r += (entity.x - entity.x_r) / speed;
-    entity.y_r += (entity.y - entity.y_r) / speed;
-    entity.z_r += (entity.z - entity.z_r) / speed;
+    if (!ccw)
+    {
+        entity.x_r += (entity.x - entity.x_r) / speed;
+        entity.y_r += (entity.y - entity.y_r) / speed;
+        entity.z_r += (entity.z - entity.z_r) / speed;
+    }
+    else
+    {
+        entity.x_r += (entity.x - entity.x_r) / speed;
+        entity.y_r += ((360 - entity.y) - entity.y_r) / speed;
+        entity.z_r += (entity.z - entity.z_r) / speed;
+    }
+    
 }
 
 
