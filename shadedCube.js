@@ -267,10 +267,12 @@ var entities = {
         x: 30.0,
         y: -45.0,
         z: 0.0,
-        x_r: this.x,
-        y_r: this.y,
-        x_r: this.z,
+        x_r: 30.0,
+        y_r: 0.0,
+        z_r: 0.0,
         toPos : function(region) {
+            this.
+            this.x = 30  
             this.y = -90 + region * 45;
         },
         getPos : function () {
@@ -283,6 +285,7 @@ var entities = {
                 console.log(regionIfChanged);
                 this.toPos(regionIfChanged);
             }
+            easeTo(this, 10);
         }
     }
 };
@@ -422,9 +425,9 @@ var render = function() {
 
     modelView = mat4();
     modelView = mult(modelView, translate(viewerPos));
-    modelView = mult(modelView, rotate(entities.camera['x'], [1, 0, 0] ));
-    modelView = mult(modelView, rotate(entities.camera['y'], [0, 1, 0] ));
-    modelView = mult(modelView, rotate(entities.camera['z'], [0, 0, 1] ));
+    modelView = mult(modelView, rotate(entities.camera['x_r'], [1, 0, 0] ));
+    modelView = mult(modelView, rotate(entities.camera['y_r'], [0, 1, 0] ));
+    modelView = mult(modelView, rotate(entities.camera['z_r'], [0, 0, 1] ));
 
     if (shouldAnimate) {
         entities.camera['y'] += 0.4;
