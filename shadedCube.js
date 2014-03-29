@@ -127,10 +127,13 @@ var playingField = createTable(level);
 
 
 var opts = {
-    UNCLAIMED   : 0,
-    CLAIMING    : 1,
-    CLAIMED     : 2,
-    UNCLAIMING  : 3
+    UNCLAIMED       : 0,
+    CLAIMING        : 1,
+    CLAIMED         : 2,
+    UNCLAIMING      : 3,
+    PAINTERS_MIN    : 0.0005,
+    PAINTERS_MED    : 0.001,
+    PAINTERS_MAX    : 0.005
 }
 
 // Creates an array with the same dimensions as the playing field
@@ -169,7 +172,7 @@ function easeClaim(x, y)
     else if (claims[x][y] === opts.UNCLAIMING)
     {
         claimColor[x][y] -= (1 - claimColor[x][y]) / speed;
-        if (claimColor[x][y] - 1 < -delta)
+        if (claimColor[x][y] < delta)
         {
             claimColor[x][y] = 0;
             claims[x][y] = opts.UNCLAIMED;
@@ -465,6 +468,31 @@ var entities = {
             }
             easeTo(this, 20);
         }
+    },
+    painters : {
+        painters : [],
+        update : function() {
+            if (Math.random() < opts.PAINTERS_MED) this.painters.push(new Painter());
+            for (var i = 0; i < this.painters.length;)
+            {
+                // Painter.update() returns false if the Painter has reached lowest
+                // level and should be deallocated
+                if(!this.painters[i].update())
+                {
+                    this.painters.splice(i, 1);
+                }
+                else
+                {
+                    i++;
+                }
+            }
+        },
+        render : function(modelView) {
+            for (var i = 0; i < this.painters.length; i++)
+            {
+                this.painters[i].render(modelView);
+            }
+        } 
     }
 };
 
@@ -508,17 +536,20 @@ function easeTo(entity, speed)
 
 function Painter(x, y, speed, leniency, scale)
 {
-    this.speed = speed || 20;
-    this.l = leniency || 0.05;
-    this.scale = scale || 0.3;
+    this.speed = speed || 6;
+    this.l = leniency || 0.1;
+    this.scale = scale || 0.1;
+    
     // Default to center
     this.x = x || level - 1;
     this.y = y || level - 1;
+    // Unclaim the block that the Painter lands on
+    claimBlock(this.y, this.x, opts.UNCLAIMING);
     this.getZ = function()
     {
         var l = playingField[this.y][this.x]-1;
         // If Painter has jumped off lowest level, he takes a plunge
-        return (l > 0) ? l : -10;
+        return (l >= 0) ? l : -10;
     }
     this.x_r = this.x;
     this.y_r = this.y;
@@ -531,50 +562,78 @@ function Painter(x, y, speed, leniency, scale)
         var chosen = false;
         var toX = this.x;
         var toY = this.y;
-        if (playingField[this.x][this.y-1] < this.getZ() && !chosen)
+        for (var i = 0; i < 2; i++)
         {
-            toY = this.y-1;
-            if(claims[toX][toY] === opts.CLAIMING || claims[toX][toY] === opts.CLAIMED)
-            {
-                chosen = true;
+            console.log(claims[level-2][level-2]);
+            if (playingField[this.x][this.y-1]-1 < this.getZ())
+            {            
+                if(claims[this.y-1][toX] === opts.CLAIMING || claims[this.y-1][toX] === opts.CLAIMED)
+                {
+                    toY = this.y-1;
+                    break;
+                }
+                if(chosen)
+                {
+                    toY = this.y-1;
+                    break;
+                }
             }
+            if (playingField[this.x][this.y+1]-1 < this.getZ())
+            {
+                if(claims[this.y+1][toX] === opts.CLAIMING || claims[this.y+1][toX] === opts.CLAIMED)
+                {
+                    toY = this.y+1;
+                    break;
+                }
+                if(chosen)
+                {
+                    toY = this.y+1;
+                    break;
+                }
+            }
+            if (playingField[this.x-1][this.y]-1 < this.getZ())
+            {
+                if(claims[toY][this.x-1] === opts.CLAIMING || claims[toY][this.x-1] === opts.CLAIMED)
+                {
+                    toX = this.x-1;
+                    break;
+                }
+                if(chosen)
+                {
+                    toY = this.x-1;
+                    break;
+                }
+            }
+            if (playingField[this.x+1][this.y]-1 < this.getZ())
+            {
+                if(claims[toY][this.x+1] === opts.CLAIMING || claims[toY][this.x+1] === opts.CLAIMED)
+                {
+                    toX = this.x+1;
+                    break;
+                }
+                if(chosen)
+                {
+                    toY = this.x+1;
+                    break;
+                }
+            }   
+            chosen = true;
         }
-        if (playingField[this.x][this.y+1] < this.getZ() && !chosen)
+        if (!chosen)
         {
-            toY = this.y+1;
-            if(claims[toX][toY] === opts.CLAIMING || claims[toX][toY] === opts.CLAIMED)
-            {
-                chosen = true;
-            }
+            claimBlock(toY, toX, opts.UNCLAIMING);
         }
-        if (playingField[this.x-1][this.y] < this.getZ() && !chosen)
-        {
-            toX = this.x-1;
-            if(claims[toX][toY] === opts.CLAIMING || claims[toX][toY] === opts.CLAIMED)
-            {
-                chosen = true;
-            }
-        }
-        if (playingField[this.x+1][this.y] < this.getZ() && !chosen)
-        {
-            toX = this.x+1;
-            if(claims[toX][toY] === opts.CLAIMING || claims[toX][toY] === opts.CLAIMED)
-            {
-                chosen = true;
-            }
-        }    
         this.x = toX;
         this.y = toY;
     }
     this.update = function()
     {
-        // TODO:
-        // ef this.z_r + 10 < this.l ætti málarinn að deyja og vera poppað úr málarafylki
-        if (Math.abs(this.x - this.x_r) < this.l && Math.abs(this.y - this.y_r) < this.l && Math.abs(this.z - this.z_r) < this.l)
+        if (Math.abs(this.x - this.x_r) < this.l && Math.abs(this.y - this.y_r) < this.l && Math.abs(this.getZ() - this.z_r) < this.l)
         {
             this.chooseAction();
         }
         easeToFancy(this, this.speed, this.l);
+        return (this.z_r + 10) > this.l;
     }
     this.render = function(modelView)
     {
@@ -589,6 +648,7 @@ function Painter(x, y, speed, leniency, scale)
  *****************************/
 
 window.onkeydown = function (e) {
+    console.log(e.keyCode);
     //e.preventDefault();
     if (entities.hero.isEasing()) return;
     var code = e.keyCode ? e.keyCode : e.which;
@@ -600,6 +660,8 @@ window.onkeydown = function (e) {
         entities.hero.moveDownRight();
     else if (code === 40)   // Down
         entities.hero.moveDownLeft();
+    else if (code === 83)
+        entities.painters.painters.push(new Painter());
     claimBlock(entities.hero.y, entities.hero.x, opts.CLAIMING);
     //explosionArray.push(new Explosion([entities.hero.x, entities.hero.y, entities.hero.getZ()]));
 }
@@ -711,6 +773,7 @@ var render = function() {
 	renderExplosions();
 
     entities.hero.render(modelView);
+    entities.painters.render(modelView);
 //    drawHeroAt(entities.hero.x, entities.hero.y, modelView);
     requestAnimFrame(render);
 }
