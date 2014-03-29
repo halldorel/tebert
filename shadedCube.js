@@ -22,7 +22,7 @@ var vertices = [
         vec4( 0.5, -0.5, -0.5, 1.0 )
     ];
 
-var lightPosition = vec4( -2.0, 10.0, 9.0, 0.0 );
+var lightPosition = vec4( -2.0, 10.0, 10.0, 0.0 );
 var lightAmbient = vec4(0.2, 0.2, 0.2, 1.0 );
 var lightDiffuse = vec4( 1.0, 1.0, 1.0, 1.0 );
 var lightSpecular = vec4( 0.1, 0.1, 0.1, 1.0 );
@@ -32,8 +32,8 @@ var materialDiffuse = vec4( 1.0, 0.8, 0.0, 1.0);
 var materialSpecular = vec4( 1.0, 0.8, 0.0, 1.0 );
 var materialShininess = 100.0;
 
-var claimedAmbient = vec4( 0.7, 0.3, 1.0, 1.0 );
-var claimedDiffuse = vec4( 0.25, 0.3, 0.0, 1.0);
+var claimedAmbient = vec4( 0.0, 0.0, 1.0, 1.0 );
+var claimedDiffuse = vec4( 0.7, 0.3, 0.0, 1.0);
 var claimedSpecular = vec4( 0.25, 0.3, 0.0, 1.0 );
 
 var ctm;
@@ -53,7 +53,7 @@ var flag = true;
 
 // ccw is true when moving between zones 1 and 8.
 var ccw = false;
-var level = 5;
+var level = 8;
 
 function quad(a, b, c, d) {
 
@@ -189,6 +189,7 @@ function easeClaim(x, y)
 
 var claims = createClaims(playingField);
 var claimColor = colorClaims(playingField);
+claims[level-1][level-1] = 1;
 
 function claimBlock(x, y, claim)
 {
@@ -203,7 +204,6 @@ function claimBlock(x, y, claim)
             claims[x][y] = claim;
     }
 }
-
 
 
 /** Explanation for 'regions' **/
@@ -240,6 +240,8 @@ var entities = {
     hero : {
         x: rowsHalf,
         y: rowsHalf,
+        oldX : rowsHalf,
+        oldY : rowsHalf,
         getZ : function () {
             return playingField[this.y][this.x]-1;
         },
@@ -277,6 +279,8 @@ var entities = {
             }
         }, 
         moveUpLeft : function () {
+            this.oldX = this.x;
+            this.oldY = this.y;
             var i = this.isIn();
             switch (i) {
                 case 0:
@@ -300,6 +304,8 @@ var entities = {
             }
         },
         moveUpRight : function () {
+            this.oldX = this.x;
+            this.oldY = this.y;
             var i = this.isIn();
             switch (i) {
                 case 0:
@@ -321,9 +327,11 @@ var entities = {
                     break;
             }
         },
-        // To be fixed ... 
         moveDownLeft : function () {
+            this.oldX = this.x;
+            this.oldY = this.y;
             var i = this.isIn();
+            if (this.getZ() === 0) return;
             switch (i) {
                 case 0:
                 case 5:
@@ -346,6 +354,9 @@ var entities = {
             }
         },
         moveDownRight : function () {
+            this.oldX = this.x;
+            this.oldY = this.y;
+            if (this.getZ() === 0) return;
             var i = this.isIn();
             switch (i) {
                 case 0:
@@ -371,26 +382,20 @@ var entities = {
         hasChangedRegion : function () {
             newIn = this.isIn()
             if (this.oldIn != newIn) {
-                if (Math.abs(this.oldIn - newIn) === 7)
-                {
-                    ccw = true;
-                }
-                else
-                {
-                    ccw = false;
-                }
+                res = { oldIn : this.oldIn, newIn : newIn};
                 this.oldIn = newIn
-                return newIn;
+                return res;
             }
             return false;
         },
-        oldZ : 4,
+        oldZ : maxLevel,
         hasChangedLevel : function () {
             // Level refers to height level of playingField
-            newZ = this.getZ()
+            newZ = this.getZ();
             if (this.oldZ != newZ) {
-                this.oldZ = newZ;
-                return newZ;
+                res = { oldZ : this.oldZ, newZ : newZ };
+                this.oldZ = newZ
+                return res;
             }
             return false;
         },
@@ -405,6 +410,10 @@ var entities = {
             return false;
         },
         update : function () {
+            /*if (this.getZ() === -1) {
+                this.x = this.oldX;
+                this.y = this.oldY;
+            }*/
             easeToFancy(this, 5, 0.3);
         },
         render : function (modelView) {
@@ -420,6 +429,7 @@ var entities = {
         y_r: 0.0,
         z_r: 0.0,
         toPosOnRegionChange : function(region) {
+            console.log("Was: " + entities.hero.oldIn, ", is now: " + entities.hero.isIn());
             if (region === 0) {
                 // Special case, if on top
                 this.y = 180.0;
@@ -439,11 +449,26 @@ var entities = {
             levelIfChanged = entities.hero.hasChangedLevel();
             if (regionIfChanged !== false)
             {
-                this.toPosOnRegionChange(regionIfChanged);
+                oldReg = regionIfChanged.oldIn;
+                newReg = regionIfChanged.newIn;
+
+                // Because circles are weird, endless and
+                // repeating things.
+                if (oldReg === 8 && newReg === 1)
+                {
+                    this.y = -45.0;
+                    this.y_r -= 360.0;
+                }
+                else if (oldReg === 1 && newReg == 8)
+                {
+                   this.y = 315.0;
+                   this.y_r += 360.0;
+                }
+                this.toPosOnRegionChange(regionIfChanged.newIn);
             }
             if (levelIfChanged !== false)
             {
-                this.toPosOnLevelChange(levelIfChanged);
+                this.toPosOnLevelChange(levelIfChanged.newZ);
             }
             easeTo(this, 10);
         }
@@ -483,18 +508,9 @@ function easeToFancy(entity, speed, delta)
 // as an inverse speed factor.
 function easeTo(entity, speed)
 {
-    /*if (!ccw)
-    {*/
-        entity.x_r += (entity.x - entity.x_r) / speed;
-        entity.y_r += (entity.y - entity.y_r) / speed;
-        entity.z_r += (entity.z - entity.z_r) / speed;
-    /*}
-    else
-    {
-        entity.x_r += (entity.x - entity.x_r) / speed;
-        entity.y_r += ((360 - entity.y) - entity.y_r) / speed;
-        entity.z_r += (entity.z - entity.z_r) / speed;
-    }*/
+    entity.x_r += (entity.x - entity.x_r) / speed;
+    entity.y_r += (entity.y - entity.y_r) / speed;
+    entity.z_r += (entity.z - entity.z_r) / speed;
 }
 
 window.onkeydown = function (e) {
@@ -510,6 +526,7 @@ window.onkeydown = function (e) {
     else if (code === 40)   // Down
         entities.hero.moveDownLeft();
     claimBlock(entities.hero.y, entities.hero.x, 1);
+    explosionArray.push(new Explosion([entities.hero.x, entities.hero.y, entities.hero.getZ()]));
 }
 
 /** Mouse handling stuff **/
@@ -541,7 +558,6 @@ window.onmousemove = function (e) {
 
     lastMouse.x = e.x;
     lastMouse.y = e.y;
-
 };
 
 
@@ -617,7 +633,7 @@ var render = function() {
     }
 
     drawPlayingField(modelView);
-	//renderExplosions();
+	renderExplosions();
 
     entities.hero.render(modelView);
 //    drawHeroAt(entities.hero.x, entities.hero.y, modelView);
@@ -654,7 +670,8 @@ function Explosion(pos, intensity, amplitude)
 		this.render = function() {
 			if (this.life >= 0.0)
 			{
-				var mv = mult(modelView, translate(this.pos[0], this.pos[1], this.pos[2]));
+                var mv = mult(modelView, scale4(withScale, withScale, withScale));
+				mv = mult(mv, translate(this.pos[0], this.pos[1], this.pos[2]));
 				mv = mult(mv, scale4(0.02, 0.02, 0.02));
 				gl.uniformMatrix4fv( gl.getUniformLocation(program,
 				        "modelViewMatrix"), false, flatten(mv) );
@@ -686,10 +703,6 @@ function Explosion(pos, intensity, amplitude)
 
 function renderExplosions()
 {
-	if (explosionArray.length == 0)
-	{
-		explosionArray.push(new Explosion());
-	}
 	for (var i = 0; i < explosionArray.length;)
 	{
 		explosionArray[i].update();
