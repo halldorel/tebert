@@ -125,11 +125,17 @@ function createTable(level)
 var playingField = createTable(level);
 
 
-// Claims:
-// 0: unclaimed
-// 1: being claimed
-// 2: claimed
-// 3: being unclaimed
+
+var opts = {
+    UNCLAIMED   : 0,
+    CLAIMING    : 1,
+    CLAIMED     : 2,
+    UNCLAIMING  : 3
+}
+
+// Creates an array with the same dimensions as the playing field
+// which denotes whether an individual block in the field has been
+// claimed by the player
 function createClaims(field)
 {
     var claims = [];
@@ -140,24 +146,7 @@ function createClaims(field)
         {
             if (field[i][j] > 0)
             {
-                claims[i][j] = 0;
-            }
-        }
-    }
-    return claims;
-}
-
-function colorClaims(field)
-{
-    var claims = [];
-    for(var i = 0; i < field.length; i++)
-    {
-        claims[i] = [];
-        for(var j = 0; j < field[i].length; j++)
-        {
-            if (field[i][j] > 0)
-            {
-                claims[i][j] = 0;
+                claims[i][j] = opts.UNCLAIMED;
             }
         }
     }
@@ -168,40 +157,41 @@ function easeClaim(x, y)
 {
     var speed = 100;
     var delta = 0.001;
-    if (claims[x][y] === 1)
+    if (claims[x][y] === opts.CLAIMING)
     {
         claimColor[x][y] += (1 - claimColor[x][y]) / speed;
         if (1 - claimColor[x][y] < delta)
         {
             claimColor[x][y] = 1;
-            claims[x][y] = 2;
+            claims[x][y] = opts.CLAIMED;
         }
     }
-    else if (claims[x][y] === 3)
+    else if (claims[x][y] === opts.UNCLAIMING)
     {
         claimColor[x][y] -= (1 - claimColor[x][y]) / speed;
         if (claimColor[x][y] - 1 < -delta)
         {
             claimColor[x][y] = 0;
-            claims[x][y] = 0;
+            claims[x][y] = opts.UNCLAIMED;
         }
     }
 }
 
 var claims = createClaims(playingField);
-var claimColor = colorClaims(playingField);
+// claimColor tracks easing color of block in transition
+var claimColor = createClaims(playingField);
 claims[level-1][level-1] = 1;
 
 function claimBlock(x, y, claim)
 {
     if (claim === 1)
     {
-        if (claims[x][y] != 1 && claims[x][y] != 2)
+        if (claims[x][y] != opts.CLAIMING && claims[x][y] != opts.CLAIMED)
             claims[x][y] = claim;
     }
     else if (claim === 3)
     {
-        if (claims[x][y] != 0 && claims[x][y] != 3)
+        if (claims[x][y] != opts.UNCLAIMED && claims[x][y] != opts.UNCLAIMING)
             claims[x][y] = claim;
     }
 }
@@ -428,7 +418,7 @@ var entities = {
         y_r: 0.0,
         z_r: 0.0,
         toPosOnRegionChange : function(region) {
-            console.log("Was: " + entities.hero.oldIn, ", is now: " + entities.hero.isIn());
+            //console.log("Was: " + entities.hero.oldIn, ", is now: " + entities.hero.isIn());
             if (region === 0) {
                 // Special case, if on top
                 this.y = 180.0;
@@ -451,13 +441,17 @@ var entities = {
                 oldReg = regionIfChanged.oldIn;
                 newReg = regionIfChanged.newIn;
 
-                // Because circles are weird, endless and
-                // repeating things.
+                // If we are transitioning from sector 8 to sector 1
+                // we move the camera to -45 degrees and ease up to 0,
+                // rather than easing from 315 down to 0 
                 if (oldReg === 8 && newReg === 1)
                 {
                     this.y = -45.0;
                     this.y_r -= 360.0;
                 }
+                // Likewise, if we're transitioning from sector 1 to
+                // sector 8, we move the camera from 360 to 315, rather
+                // than from 0 to 315
                 else if (oldReg === 1 && newReg == 8)
                 {
                    this.y = 315.0;
@@ -469,7 +463,7 @@ var entities = {
             {
                 this.toPosOnLevelChange(levelIfChanged.newZ);
             }
-            easeTo(this, 10);
+            easeTo(this, 20);
         }
     }
 };
@@ -512,8 +506,88 @@ function easeTo(entity, speed)
     entity.z_r += (entity.z - entity.z_r) / speed;
 }
 
+function Painter(x, y, speed, leniency, scale)
+{
+    this.speed = speed || 20;
+    this.l = leniency || 0.05;
+    this.scale = scale || 0.3;
+    // Default to center
+    this.x = x || level - 1;
+    this.y = y || level - 1;
+    this.getZ = function()
+    {
+        var l = playingField[this.y][this.x]-1;
+        // If Painter has jumped off lowest level, he takes a plunge
+        return (l > 0) ? l : -10;
+    }
+    this.x_r = this.x;
+    this.y_r = this.y;
+    // We let the Painter drop to the table from a height
+    this.z_r = this.getZ() + 10;
+    // Attempts to jump down to a block that has been claimed
+    this.chooseAction = function()
+    {
+        if (this.getZ() == -10) return;
+        var chosen = false;
+        var toX = this.x;
+        var toY = this.y;
+        if (playingField[this.x][this.y-1] < this.getZ() && !chosen)
+        {
+            toY = this.y-1;
+            if(claims[toX][toY] === opts.CLAIMING || claims[toX][toY] === opts.CLAIMED)
+            {
+                chosen = true;
+            }
+        }
+        if (playingField[this.x][this.y+1] < this.getZ() && !chosen)
+        {
+            toY = this.y+1;
+            if(claims[toX][toY] === opts.CLAIMING || claims[toX][toY] === opts.CLAIMED)
+            {
+                chosen = true;
+            }
+        }
+        if (playingField[this.x-1][this.y] < this.getZ() && !chosen)
+        {
+            toX = this.x-1;
+            if(claims[toX][toY] === opts.CLAIMING || claims[toX][toY] === opts.CLAIMED)
+            {
+                chosen = true;
+            }
+        }
+        if (playingField[this.x+1][this.y] < this.getZ() && !chosen)
+        {
+            toX = this.x+1;
+            if(claims[toX][toY] === opts.CLAIMING || claims[toX][toY] === opts.CLAIMED)
+            {
+                chosen = true;
+            }
+        }    
+        this.x = toX;
+        this.y = toY;
+    }
+    this.update = function()
+    {
+        if (Math.abs(this.x - this.x_r) < this.l && Math.abs(this.y - this.y_r) < this.l && Math.abs(this.z - this.z_r) < this.l)
+        {
+            this.chooseAction();
+        }
+        easeToFancy(this, this.speed, this.l);
+    }
+    this.render = function(modelView)
+    {
+        drawCubeAt(rows/2-this.x_r, this.z_r, cols/2-this.y_r, this.scale, modelView);
+    }
+}
+
+/*****************************
+ *                           *
+ *     Keyboard handling     *
+ *                           *
+ *****************************/
+
 window.onkeydown = function (e) {
-    e.preventDefault();
+    //e.preventDefault();
     if (entities.hero.isEasing()) return;
     var code = e.keyCode ? e.keyCode : e.which;
     if (code === 37)        // Left
@@ -524,8 +598,8 @@ window.onkeydown = function (e) {
         entities.hero.moveDownRight();
     else if (code === 40)   // Down
         entities.hero.moveDownLeft();
-    claimBlock(entities.hero.y, entities.hero.x, 1);
-    explosionArray.push(new Explosion([entities.hero.x, entities.hero.y, entities.hero.getZ()]));
+    claimBlock(entities.hero.y, entities.hero.x, opts.CLAIMING);
+    //explosionArray.push(new Explosion([entities.hero.x, entities.hero.y, entities.hero.getZ()]));
 }
 
 /** Mouse handling stuff **/
@@ -572,7 +646,7 @@ function drawPlayingField(modelView) {
             }
             else {
                 drawCubeAt(rows/2-j, playingField[i][j]-2, cols/2-i, pfScale, modelView, claims[i][j], claimColor[i][j]);
-                if (claims[i][j] === 1 || claims[i][j] === 3)
+                if (claims[i][j] === opts.CLAIMING || claims[i][j] === opts.UNCLAIMING)
                 {
                     easeClaim(i, j);
                 }
