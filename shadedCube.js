@@ -568,6 +568,8 @@ function Painter(x, y, speed, leniency, scale)
     }
     this.update = function()
     {
+        // TODO:
+        // ef this.z_r + 10 < this.l ætti málarinn að deyja og vera poppað úr málarafylki
         if (Math.abs(this.x - this.x_r) < this.l && Math.abs(this.y - this.y_r) < this.l && Math.abs(this.z - this.z_r) < this.l)
         {
             this.chooseAction();
