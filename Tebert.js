@@ -672,7 +672,7 @@ function Painter(x, y, speed, leniency, scale)
 	}
 	this.render = function(modelView)
 	{
-		drawBeethovenAt(rows/2-this.x_r, this.z_r, cols/2-this.y_r, this.scale, modelView);
+		drawCubeAt(rows/2-this.x_r, this.z_r, cols/2-this.y_r, this.scale, modelView);
 	}
 }
 
@@ -680,7 +680,7 @@ function Snakur(x, y, speed, leniency, scale)
 {
 	this.speed = speed || 15;
 	this.l = leniency || 0.05;
-	this.scale = scale || 0.1*Math.random() + 0.1;
+	this.scale = scale || 0.3;
 	
 	// Default to center
 	this.x = x || level - 1;
@@ -719,7 +719,7 @@ function Snakur(x, y, speed, leniency, scale)
 	}
 	this.render = function(modelView)
 	{
-		drawBeethovenAt(rows/2-this.x_r, this.z_r, cols/2-this.y_r, this.scale, modelView);
+		drawCubeAt(rows/2-this.x_r, this.z_r, cols/2-this.y_r, this.scale, modelView);
 	}
 
 }
