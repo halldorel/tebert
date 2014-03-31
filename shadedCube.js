@@ -510,6 +510,21 @@ var entities = {
                 this.painters[i].render(modelView);
             }
         } 
+    },
+    snakes : {
+        snakes : [],
+        update : function() {
+            for (var i = 0; i < this.snakes.length; i++)
+            {
+                this.snakes[i].update();
+            }
+        },
+        render : function(modelView) {
+            for (var i = 0; i < this.snakes.length; i++)
+            {
+                this.snakes[i].render(modelView);
+            }
+        }
     }
 };
 
@@ -555,7 +570,7 @@ function Painter(x, y, speed, leniency, scale)
 {
     this.speed = speed || 6;
     this.l = leniency || 0.1;
-    this.scale = scale || 0.1;
+    this.scale = scale || 0.1*Math.random() + 0.1;
     
     // Default to center
     this.x = x || level - 1;
@@ -565,7 +580,6 @@ function Painter(x, y, speed, leniency, scale)
     this.getZ = function()
     {
         var l = playingField[this.y][this.x];
-        if (l === undefined) console.log("here")
         if (l !== undefined) l--;
         // If Painter has jumped off lowest level, he takes a plunge
         return (l !== undefined && l >= 0) ? l : -10;
@@ -594,6 +608,8 @@ function Painter(x, y, speed, leniency, scale)
         }
         if (claimedExists)
         {
+            // If at least one of the destination options is claimed,
+            // we pop all unclaimed destination options from the array
             for (var i = 0; i < options.length; )
             {
                 if (!options[i].claimed)
@@ -626,6 +642,54 @@ function Painter(x, y, speed, leniency, scale)
     }
 }
 
+function Snakur(x, y, speed, leniency, scale)
+{
+    this.speed = speed || 10;
+    this.l = leniency || 0.1;
+    this.scale = scale || 0.1*Math.random() + 0.1;
+    
+    // Default to center
+    this.x = x || level - 1;
+    this.y = y || level - 1;
+    this.getZ = function() {return playingField[this.x][this.y]-1;};
+    console.log("created")
+    this.x_r = this.x;
+    this.y_r = this.y;
+    // We let the Snake drop to the table from a height
+    this.z_r = this.getZ();// + 10;
+
+    // Attempts to move the Snake one block closer to target
+    this.chooseAction = function(target)
+    {
+        var dx = Math.round(Math.abs(target.x - this.x));
+        var dy = Math.round(Math.abs(target.y - this.y));
+        if (dx > dy)
+        {
+            if(this.x < target.x) this.x++;
+            else this.x--;
+        }
+        else
+        {
+            if(this.y < target.y) this.y++;
+            else this.y--;
+        }
+    }
+    this.update = function()
+    {
+        if (Math.abs(this.x - this.x_r) < this.l && Math.abs(this.y - this.y_r) < this.l && Math.abs(this.getZ() - this.z_r) < this.l)
+        {
+            this.chooseAction(entities.hero);
+        }
+        
+        easeToFancy(this, this.speed, this.l);
+    }
+    this.render = function(modelView)
+    {
+        drawBeethovenAt(rows/2-this.x_r, this.z_r, cols/2-this.y_r, this.scale, modelView);
+    }
+
+}
+
 /*****************************
  *                           *
  *     Keyboard handling     *
@@ -645,6 +709,8 @@ window.onkeydown = function (e) {
         entities.hero.moveDownLeft();
     else if (code === 83)
         entities.painters.painters.push(new Painter());
+    else if (code === 68)
+        entities.snakes.snakes.push(new Snakur());
     claimBlock(entities.hero.y, entities.hero.x, opts.CLAIMING);
     //explosionArray.push(new Explosion([entities.hero.x, entities.hero.y, entities.hero.getZ()]));
 }
@@ -783,10 +849,11 @@ var render = function() {
     }
 
     drawPlayingField(modelView);
-	renderExplosions();
+	renderExplosions(modelView);
 
     entities.hero.render(modelView);
     entities.painters.render(modelView);
+    entities.snakes.render(modelView);
 //    drawHeroAt(entities.hero.x, entities.hero.y, modelView);
     requestAnimFrame(render);
 }
@@ -818,7 +885,7 @@ function Explosion(pos, intensity, amplitude)
 				this.life -= decrement;
 			}
 		};
-		this.render = function() {
+		this.render = function(modelView) {
 			if (this.life >= 0.0)
 			{
                 //var mv = mult(modelView, scale4(withScale, withScale, withScale));
@@ -841,7 +908,7 @@ function Explosion(pos, intensity, amplitude)
 		{
 			if (this.particles[i] != null)
 			{
-				this.particles[i].render();
+				this.particles[i].render(modelView);
 				this.particles[i].update();
 				if (this.particles[i].life <= 0.0)
 				{
@@ -852,7 +919,7 @@ function Explosion(pos, intensity, amplitude)
 	}
 }
 
-function renderExplosions()
+function renderExplosions(modelView)
 {
 	for (var i = 0; i < explosionArray.length;)
 	{
