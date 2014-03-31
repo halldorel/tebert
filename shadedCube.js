@@ -609,7 +609,7 @@ function Painter(x, y, speed, leniency, scale)
         var choice = options[Math.floor(Math.random() * options.length)];
         this.x = choice.x;
         this.y = choice.y;
-        claimBlock(toY, toX, opts.UNCLAIMING);
+        claimBlock(this.y, this.x, opts.UNCLAIMING);
     }
     this.update = function()
     {
