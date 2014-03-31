@@ -4,6 +4,7 @@ var canvas;
 var gl;
 
 var numVertices  = 36;
+var numBeethoven = 0;
 
 var pointsArray = [];
 var normalsArray = [];
@@ -78,7 +79,6 @@ function quad(a, b, c, d) {
      normalsArray.push(normal);    
 }
 
-
 function colorCube()
 {
     quad( 1, 0, 3, 2 );
@@ -87,6 +87,21 @@ function colorCube()
     quad( 6, 5, 1, 2 );
     quad( 4, 5, 6, 7 );
     quad( 5, 4, 0, 1 );
+}
+
+/** Load Ply **/
+
+function plyInit() {
+    var parser = PlyReader();
+    var parsed = parser.read('beethoven.ply');
+
+    numBeethoven = parsed.points.length;
+
+    for (var i = 0; i < parsed.points.length; ++i)
+    {
+        pointsArray.push(parsed.points[i]);
+        normalsArray.push(parsed.normals[i]);
+    }
 }
 
     /****************
@@ -409,8 +424,8 @@ var entities = {
             easeToFancy(this, 5, 0.3);
         },
         render : function (modelView) {
-            drawCubeAt(rows/2-this.x_r, this.z_r,
-                cols/2-this.y_r, heroScale, modelView);
+            drawBeethovenAt(rows/2-this.x_r, this.z_r,
+                cols/2-this.y_r, 0.3, modelView);
         }
     },
     camera : {
@@ -421,7 +436,6 @@ var entities = {
         y_r: 0.0,
         z_r: 0.0,
         toPosOnRegionChange : function(region) {
-            //console.log("Was: " + entities.hero.oldIn, ", is now: " + entities.hero.isIn());
             if (region === 0) {
                 // Special case, if on top
                 this.y = 180.0;
@@ -564,7 +578,7 @@ function Painter(x, y, speed, leniency, scale)
         var toY = this.y;
         for (var i = 0; i < 2; i++)
         {
-            console.log(claims[level-2][level-2]);
+            //console.log(claims[level-2][level-2]);
             if (playingField[this.x][this.y-1]-1 < this.getZ())
             {            
                 if(claims[this.y-1][toX] === opts.CLAIMING || claims[this.y-1][toX] === opts.CLAIMED)
@@ -648,8 +662,6 @@ function Painter(x, y, speed, leniency, scale)
  *****************************/
 
 window.onkeydown = function (e) {
-    console.log(e.keyCode);
-    //e.preventDefault();
     if (entities.hero.isEasing()) return;
     var code = e.keyCode ? e.keyCode : e.which;
     if (code === 37)        // Left
@@ -720,7 +732,7 @@ function drawPlayingField(modelView) {
 }
 
 // Draws a single cube to scale
-function drawCubeAt (x, y, z, withScale, modelView, claimed, c) {
+function drawCubeAt (x, y, z, withScale, modelView, claimed, c, thing) {
     claimed = claimed || false;
     // To get the relative center pos of cube
     x = pfScale * x - pfScale/2;
@@ -733,6 +745,9 @@ function drawCubeAt (x, y, z, withScale, modelView, claimed, c) {
     ambientProduct = mult(lightAmbient, add(mult([c, c, c, 1], materialAmbient), mult([1-c, 1-c, 1-c, 1], claimedAmbient)));
     diffuseProduct = mult(lightDiffuse, add(mult([c, c, c, 1], materialDiffuse), mult([1-c, 1-c, 1-c, 1], claimedDiffuse)));
     specularProduct = mult(lightSpecular, add(mult([c, c, c, 1], materialSpecular), mult([1-c, 1-c, 1-c, 1], claimedSpecular)));
+
+
+    //console.log(ambientProduct);
     gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"),
         flatten(ambientProduct));
     gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"),
@@ -742,7 +757,34 @@ function drawCubeAt (x, y, z, withScale, modelView, claimed, c) {
 
     gl.uniformMatrix4fv( gl.getUniformLocation(program,
             "modelViewMatrix"), false, flatten(modelView) );
+
     gl.drawArrays( gl.TRIANGLES, 0, numVertices );
+
+}
+
+function drawBeethovenAt(x, y, z, withScale, modelView) {    // To get the relative center pos of cube
+    x = pfScale * x - pfScale/2;
+    y = pfScale * y - pfScale/2;
+    z = pfScale * z - pfScale/2;
+    modelView = mult(modelView, translate(x, y, z));
+    modelView = mult(modelView, scale4(withScale, withScale, withScale));
+
+    ambientProduct = mult(lightAmbient, materialAmbient);
+    diffuseProduct = mult(lightDiffuse, materialDiffuse);
+    specularProduct = mult(lightSpecular, materialSpecular);
+
+    //console.log(ambientProduct);
+    gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"),
+        flatten(ambientProduct));
+    gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"),
+        flatten(diffuseProduct) );
+    gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), 
+        flatten(specularProduct) ); 
+
+    gl.uniformMatrix4fv( gl.getUniformLocation(program,
+            "modelViewMatrix"), false, flatten(modelView) );
+
+    gl.drawArrays( gl.TRIANGLES, numVertices, numBeethoven );
 }
 
 var update = function () {
@@ -884,6 +926,7 @@ window.onload = function init() {
     gl.useProgram( program );
     
     colorCube();
+    plyInit();
 
     var nBuffer = gl.createBuffer();
     gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer );
