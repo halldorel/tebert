@@ -55,7 +55,7 @@ var flag = true;
 
 // ccw is true when moving between zones 1 and 8.
 var ccw = false;
-var level = 8;
+var level = 7;
 
 function quad(a, b, c, d) {
 
@@ -174,7 +174,7 @@ function createClaims(field)
 function easeClaim(x, y)
 {
     var speed = 40;
-    var delta = 0.05;
+    var delta = 0.01;
     if (claims[x][y] === opts.CLAIMING)
     {
         claimColor[x][y] += (1 - claimColor[x][y]) / speed;
@@ -579,7 +579,8 @@ function Painter(x, y, speed, leniency, scale)
     claimBlock(this.y, this.x, opts.UNCLAIMING);
     this.getZ = function()
     {
-        var l = playingField[this.y][this.x];
+        var l = playingField[this.y];
+        if (l !== undefined) l = l[this.x];
         if (l !== undefined) l--;
         // If Painter has jumped off lowest level, he takes a plunge
         return (l !== undefined && l >= 0) ? l : -10;
@@ -593,6 +594,27 @@ function Painter(x, y, speed, leniency, scale)
     {
         if (this.getZ() == -10) return;
         options = [];
+        // If Painter is on the lowest step of sections 2, 4, 6, or 8
+        if (playingField[this.x][this.y-1] === undefined)
+        {
+            this.y--;
+            return;
+        }
+        if (playingField[this.x][this.y+1] === undefined)
+        {
+            this.y++;
+            return;
+        }
+        if (playingField[this.x-1] === undefined)
+        {
+            this.x--;
+            return;
+        }
+        if (playingField[this.x+1] === undefined)
+        {
+            this.x++;
+            return;
+        }
         if (playingField[this.x][this.y-1]-1 < this.getZ()) options.push({x: this.x, y: this.y-1, claimed: false});
         if (playingField[this.x][this.y+1]-1 < this.getZ()) options.push({x: this.x, y: this.y+1, claimed: false});
         if (playingField[this.x-1][this.y]-1 < this.getZ()) options.push({x: this.x-1, y: this.y, claimed: false});
@@ -644,8 +666,8 @@ function Painter(x, y, speed, leniency, scale)
 
 function Snakur(x, y, speed, leniency, scale)
 {
-    this.speed = speed || 10;
-    this.l = leniency || 0.1;
+    this.speed = speed || 15;
+    this.l = leniency || 0.05;
     this.scale = scale || 0.1*Math.random() + 0.1;
     
     // Default to center
