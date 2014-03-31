@@ -148,7 +148,7 @@ var opts = {
 	CLAIMED         : 2,
 	UNCLAIMING      : 3,
 	PAINTERS_MIN    : 0.0005,
-	PAINTERS_MED    : 0.001,
+	PAINTERS_MED    : 0.0001,
 	PAINTERS_MAX    : 0.005
 }
 
@@ -163,7 +163,7 @@ function createClaims(field)
 		claims[i] = [];
 		for(var j = 0; j < field[i].length; j++)
 		{
-			if (field[i][j] > 0)
+			if (field[i][j] === 0) continue;
 			{
 				claims[i][j] = opts.UNCLAIMED;
 			}
@@ -175,7 +175,7 @@ function createClaims(field)
 function easeClaim(x, y)
 {
 	var speed = 40;
-	var delta = 0.01;
+	var delta = 0.02;
 	if (claims[x][y] === opts.CLAIMING)
 	{
 		claimColor[x][y] += (1 - claimColor[x][y]) / speed;
@@ -206,14 +206,14 @@ claims[level-1][level-1] = 1;
 
 function claimBlock(x, y, claim)
 {
-	if (claim === 1)
+	if (claim === opts.CLAIMING)
 	{
-		if (claims[x][y] != opts.CLAIMING && claims[x][y] != opts.CLAIMED)
+		if (claims[x][y] != opts.CLAIMED)
 			claims[x][y] = claim;
 	}
-	else if (claim === 3)
+	else if (claim === opts.UNCLAIMING)
 	{
-		if (claims[x][y] != opts.UNCLAIMED && claims[x][y] != opts.UNCLAIMING)
+		if (claims[x][y] != opts.UNCLAIMED)
 			claims[x][y] = claim;
 	}
 }
@@ -580,7 +580,7 @@ function easeTo(entity, speed)
 
 function Painter(x, y, speed, leniency, scale)
 {
-	this.speed = speed || 6;
+	this.speed = speed || Math.random()*5 + 2;
 	this.l = leniency || 0.1;
 	this.scale = scale || 0.1*Math.random() + 0.1;
 	
@@ -659,7 +659,8 @@ function Painter(x, y, speed, leniency, scale)
 		var choice = options[Math.floor(Math.random() * options.length)];
 		this.x = choice.x;
 		this.y = choice.y;
-		claimBlock(this.y, this.x, opts.UNCLAIMING);
+		if (playingField[this.x][this.y])
+			claimBlock(this.y, this.x, opts.UNCLAIMING);
 	}
 	this.update = function()
 	{
@@ -787,16 +788,17 @@ function drawPlayingField(modelView) {
 	var cols = playingField[0].length;
 	for (var i = 0; i < rows; ++i) {
 		for (var j = 0; j < cols; ++j) {
+			easeClaim(i, j);
 			current = playingField[i][j];
 			if (current === 0) {
 				continue;
 			}
 			else {
 				drawCubeAt(rows/2-j, playingField[i][j]-2, cols/2-i, pfScale, modelView, claims[i][j], claimColor[i][j]);
-				if (claims[i][j] === opts.CLAIMING || claims[i][j] === opts.UNCLAIMING)
-				{
+				//if (claims[i][j] === opts.CLAIMING || claims[i][j] === opts.UNCLAIMING)
+				//{
 					easeClaim(i, j);
-				}
+				//}
 			}
 		}
 	}
