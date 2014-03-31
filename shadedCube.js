@@ -173,8 +173,8 @@ function createClaims(field)
 
 function easeClaim(x, y)
 {
-    var speed = 70;
-    var delta = 0.01;
+    var speed = 40;
+    var delta = 0.05;
     if (claims[x][y] === opts.CLAIMING)
     {
         claimColor[x][y] += (1 - claimColor[x][y]) / speed;
@@ -564,9 +564,11 @@ function Painter(x, y, speed, leniency, scale)
     claimBlock(this.y, this.x, opts.UNCLAIMING);
     this.getZ = function()
     {
-        var l = playingField[this.y][this.x]-1;
+        var l = playingField[this.y][this.x];
+        if (l === undefined) console.log("here")
+        if (l !== undefined) l--;
         // If Painter has jumped off lowest level, he takes a plunge
-        return (l >= 0) ? l : -10;
+        return (l !== undefined && l >= 0) ? l : -10;
     }
     this.x_r = this.x;
     this.y_r = this.y;
@@ -576,72 +578,38 @@ function Painter(x, y, speed, leniency, scale)
     this.chooseAction = function()
     {
         if (this.getZ() == -10) return;
-        var chosen = false;
-        var toX = this.x;
-        var toY = this.y;
-        for (var i = 0; i < 2; i++)
+        options = [];
+        if (playingField[this.x][this.y-1]-1 < this.getZ()) options.push({x: this.x, y: this.y-1, claimed: false});
+        if (playingField[this.x][this.y+1]-1 < this.getZ()) options.push({x: this.x, y: this.y+1, claimed: false});
+        if (playingField[this.x-1][this.y]-1 < this.getZ()) options.push({x: this.x-1, y: this.y, claimed: false});
+        if (playingField[this.x+1][this.y]-1 < this.getZ()) options.push({x: this.x+1, y: this.y, claimed: false});
+        var claimedExists = false;
+        for (var i = 0; i < options.length; i++)
         {
-            //console.log(claims[level-2][level-2]);
-            if (playingField[this.x][this.y-1]-1 < this.getZ())
-            {            
-                if(claims[this.y-1][toX] === opts.CLAIMING || claims[this.y-1][toX] === opts.CLAIMED)
-                {
-                    toY = this.y-1;
-                    break;
-                }
-                if(chosen)
-                {
-                    toY = this.y-1;
-                    break;
-                }
-            }
-            if (playingField[this.x][this.y+1]-1 < this.getZ())
+            if (claims[options[i].y][options[i].x] === opts.CLAIMING || claims[options[i].y][options[i].x] === opts.CLAIMED)
             {
-                if(claims[this.y+1][toX] === opts.CLAIMING || claims[this.y+1][toX] === opts.CLAIMED)
-                {
-                    toY = this.y+1;
-                    break;
-                }
-                if(chosen)
-                {
-                    toY = this.y+1;
-                    break;
-                }
+                options[i].claimed = true;
+                claimedExists = true;
             }
-            if (playingField[this.x-1][this.y]-1 < this.getZ())
-            {
-                if(claims[toY][this.x-1] === opts.CLAIMING || claims[toY][this.x-1] === opts.CLAIMED)
-                {
-                    toX = this.x-1;
-                    break;
-                }
-                if(chosen)
-                {
-                    toY = this.x-1;
-                    break;
-                }
-            }
-            if (playingField[this.x+1][this.y]-1 < this.getZ())
-            {
-                if(claims[toY][this.x+1] === opts.CLAIMING || claims[toY][this.x+1] === opts.CLAIMED)
-                {
-                    toX = this.x+1;
-                    break;
-                }
-                if(chosen)
-                {
-                    toY = this.x+1;
-                    break;
-                }
-            }   
-            chosen = true;
         }
-        if (!chosen)
+        if (claimedExists)
         {
-            claimBlock(toY, toX, opts.UNCLAIMING);
+            for (var i = 0; i < options.length; )
+            {
+                if (!options[i].claimed)
+                {
+                    options.splice(i, 1);
+                }
+                else
+                {
+                    i++;
+                }
+            }
         }
-        this.x = toX;
-        this.y = toY;
+        var choice = options[Math.floor(Math.random() * options.length)];
+        this.x = choice.x;
+        this.y = choice.y;
+        claimBlock(toY, toX, opts.UNCLAIMING);
     }
     this.update = function()
     {
@@ -654,7 +622,7 @@ function Painter(x, y, speed, leniency, scale)
     }
     this.render = function(modelView)
     {
-        drawCubeAt(rows/2-this.x_r, this.z_r, cols/2-this.y_r, this.scale, modelView);
+        drawBeethovenAt(rows/2-this.x_r, this.z_r, cols/2-this.y_r, this.scale, modelView);
     }
 }
 
