@@ -186,7 +186,10 @@ function easeClaim(x, y)
     }
     else if (claims[x][y] === opts.UNCLAIMING)
     {
-        claimColor[x][y] -= (1 - claimColor[x][y]) / speed;
+        //claimColor[x][y] = 0;
+        //claims[x][y] = opts.UNCLAIMED;
+        //return;
+        claimColor[x][y] += (-claimColor[x][y]) / speed;
         if (claimColor[x][y] < delta)
         {
             claimColor[x][y] = 0;
