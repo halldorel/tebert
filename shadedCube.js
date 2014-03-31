@@ -158,8 +158,8 @@ function createClaims(field)
 
 function easeClaim(x, y)
 {
-    var speed = 100;
-    var delta = 0.001;
+    var speed = 70;
+    var delta = 0.01;
     if (claims[x][y] === opts.CLAIMING)
     {
         claimColor[x][y] += (1 - claimColor[x][y]) / speed;
