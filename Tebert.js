@@ -495,7 +495,8 @@ var entities = {
 				this.toPosOnLevelChange(levelIfChanged.newZ);
 			}
 			easeTo(this, 20);
-		}
+		},
+		render : function (modelView){ return; }
 	},
 	painters : {
 		painters : [],
@@ -901,7 +902,7 @@ function victoryCheck()
 }
 
 // Main render function
-var render = function() {
+var mainIterator = function() {
 	update();
 
 	viewerPos = vec3(0.0, 0.0, -(2.5 + 0.3 * (1.5*maxLevel - entities.hero.z_r)));
@@ -914,17 +915,14 @@ var render = function() {
 	modelView = mult(modelView, rotate(entities.camera['y_r'], [0, 1, 0] ));
 	modelView = mult(modelView, rotate(entities.camera['z_r'], [0, 0, 1] ));
 
-	if (shouldAnimate) {
-		entities.camera['y'] += 3.0;
-	}
-
 	drawPlayingField(modelView);
 	renderExplosions(modelView);
 
-	entities.hero.render(modelView);
-	entities.painters.render(modelView);
-	entities.snakes.render(modelView);
-	requestAnimFrame(render);
+	for(var entity in entities) {
+		entities[entity].render(modelView);
+	}
+
+	requestAnimFrame(mainIterator);
 }
 
 
@@ -1023,7 +1021,6 @@ window.onload = function init() {
 	gl.clearColor( 0.1, 0.1, 0.1, 1.0 );
 	
 	gl.enable(gl.DEPTH_TEST);
-
 	//
 	//  Load shaders and initialize attribute buffers
 	//
@@ -1051,6 +1048,8 @@ window.onload = function init() {
 
 	thetaLoc = gl.getUniformLocation(program, "theta"); 
 	
+	projection = perspective(60.0, 800/800, 0.01, 1000.0);
+	
 	ambientProduct = mult(lightAmbient, materialAmbient);
 	diffuseProduct = mult(lightDiffuse, materialDiffuse);
 	specularProduct = mult(lightSpecular, materialSpecular);
@@ -1069,5 +1068,5 @@ window.onload = function init() {
 	gl.uniformMatrix4fv( gl.getUniformLocation(program, "projectionMatrix"),
 	   false, flatten(projection));
 	
-	render();
+	mainIterator();
 }
