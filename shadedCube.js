@@ -100,7 +100,8 @@ function plyInit() {
     for (var i = 0; i < parsed.points.length; ++i)
     {
         pointsArray.push(parsed.points[i]);
-        normalsArray.push(parsed.normals[i]);
+        normal = vec3(parsed.normals[i][0], parsed.normals[i][1], parsed.normals[i][2])
+        normalsArray.push(normal);
     }
 }
 
@@ -262,6 +263,8 @@ var entities = {
         x_r: 30,
         y_r: 10,
         z_r: 0,
+        lastDirection: 180.0,
+        direction: 180.0,
         speedFactor: 100,
         isIn: function () {
             // Hero is at top
@@ -313,8 +316,10 @@ var entities = {
                 case 8:
                     this.y--;
                     break;
-
             }
+            this.direction = -this.isIn()*45.0;
+            if (i % 2 === 0) this.direction += 45.0;
+            this.direction -= 45.0;
         },
         moveUpRight : function () {
             this.oldX = this.x;
@@ -339,6 +344,9 @@ var entities = {
                     this.x++;
                     break;
             }
+            this.direction = -this.isIn()*45.0;
+            if (i % 2 === 0) this.direction += 45.0;
+            this.direction -= 135.0;
         },
         moveDownLeft : function () {
             this.oldX = this.x;
@@ -363,8 +371,9 @@ var entities = {
                 case 8:
                     this.x--;
                     break;
-
             }
+            this.direction = -this.isIn()*45.0+45.0;
+            if (i % 2 === 0) this.direction += 45.0;
         },
         moveDownRight : function () {
             this.oldX = this.x;
@@ -391,6 +400,8 @@ var entities = {
                     this.y++;
                     break;
             }
+            this.direction = -this.isIn()*45.0+45.0;
+            this.direction += 90.0;
         },
         oldIn : rowsHalf,
         hasChangedRegion : function () {
@@ -428,7 +439,7 @@ var entities = {
         },
         render : function (modelView) {
             drawBeethovenAt(rows/2-this.x_r, this.z_r,
-                cols/2-this.y_r, 0.3, modelView);
+                cols/2-this.y_r, 0.2, modelView);
         }
     },
     camera : {
@@ -827,6 +838,8 @@ function drawBeethovenAt(x, y, z, withScale, modelView) {    // To get the relat
     z = pfScale * z - pfScale/2;
     modelView = mult(modelView, translate(x, y, z));
     modelView = mult(modelView, scale4(withScale, withScale, withScale));
+    modelView = mult(modelView, rotate(entities.hero.direction, [0, 1, 0]));
+    modelView = mult(modelView, rotate(-55.0, [1, 0, 0]));
 
     ambientProduct = mult(lightAmbient, materialAmbient);
     diffuseProduct = mult(lightDiffuse, materialDiffuse);
